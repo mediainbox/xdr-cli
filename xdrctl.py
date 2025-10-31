@@ -13,6 +13,13 @@ import click
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 7373  # default xdrd TCP port
 
+# Allow overriding host/port via environment variables XDRD_HOST and XDRD_PORT
+ENV_HOST_DEFAULT = os.environ.get("XDRD_HOST", DEFAULT_HOST)
+try:
+    ENV_PORT_DEFAULT = int(os.environ.get("XDRD_PORT")) if os.environ.get("XDRD_PORT") is not None else DEFAULT_PORT
+except ValueError:
+    ENV_PORT_DEFAULT = DEFAULT_PORT
+
 # -----------------------------
 # Networking & AUTH utilities
 # -----------------------------
@@ -275,8 +282,8 @@ def parse_lines_to_events(lines):
 # CLI
 # -----------------------------
 @click.group(help="xdrd CLI: AUTH via SHA1(salt+password) and ASCII commands (T/W/F/...).")
-@click.option("--host", default=DEFAULT_HOST, show_default=True)
-@click.option("--port", default=DEFAULT_PORT, type=int, show_default=True)
+@click.option("--host", default=ENV_HOST_DEFAULT, show_default=True)
+@click.option("--port", default=ENV_PORT_DEFAULT, type=int, show_default=True)
 @click.option("--password", default=None, help="xdrd server password. You can also use XDRD_PASS or --password-file.")
 @click.option("--password-file", type=click.Path(exists=True), default=None, help="Read password from file.")
 @click.pass_context
