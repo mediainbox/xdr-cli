@@ -33,8 +33,9 @@ The CLI handles this automatically.
 
 ```bash
 export XDRD_PASS='123qwe'
-
-./xdrctl.py --host 192.168.86.42 --port 7370 status
+export XDRD_HOST=192.168.86.42
+export XDRD_PORT=7370
+./xdrctl.py status
 ```
 
 Readable output:
@@ -48,7 +49,7 @@ deemphasis : 0
 
 JSON output:
 ```bash
-./xdrctl.py --host 192.168.86.42 --port 7370 status --json
+./xdrctl.py status --json
 ```
 
 ```json
