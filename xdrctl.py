@@ -13,13 +13,6 @@ import click
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 7373  # default xdrd TCP port
 
-# Allow overriding host/port via environment variables XDRD_HOST and XDRD_PORT
-ENV_HOST_DEFAULT = os.environ.get("XDRD_HOST", DEFAULT_HOST)
-try:
-    ENV_PORT_DEFAULT = int(os.environ.get("XDRD_PORT")) if os.environ.get("XDRD_PORT") is not None else DEFAULT_PORT
-except ValueError:
-    ENV_PORT_DEFAULT = DEFAULT_PORT
-
 # -----------------------------
 # Networking & AUTH utilities
 # -----------------------------
@@ -282,8 +275,8 @@ def parse_lines_to_events(lines):
 # CLI
 # -----------------------------
 @click.group(help="xdrd CLI: AUTH via SHA1(salt+password) and ASCII commands (T/W/F/...).")
-@click.option("--host", default=ENV_HOST_DEFAULT, show_default=True)
-@click.option("--port", default=ENV_PORT_DEFAULT, type=int, show_default=True)
+@click.option("--host", default=DEFAULT_HOST, show_default=True)
+@click.option("--port", default=DEFAULT_PORT, type=int, show_default=True)
 @click.option("--password", default=None, help="xdrd server password. You can also use XDRD_PASS or --password-file.")
 @click.option("--password-file", type=click.Path(exists=True), default=None, help="Read password from file.")
 @click.pass_context
@@ -512,6 +505,25 @@ def rotator(ctx, value, read_seconds, as_json):
 @click.pass_context
 def interval(ctx, sampling, detector, read_seconds, as_json):
     _send_and_print(ctx, f"I{sampling},{detector}", read_seconds, as_json)
+
+# -----------------------------
+# Startup / Shutdown
+# -----------------------------
+@cli.command(name="init", help="Initializer/startup command (sends 'x').")
+@click.option("--read-seconds", default=0.6, show_default=True, type=float, help="How long to read after sending.")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON output.")
+@click.pass_context
+def init_cmd(ctx, read_seconds, as_json):
+    # 'x' = XDR_P_STARTUP
+    _send_and_print(ctx, "x", read_seconds, as_json)
+
+@cli.command(help="Shutdown/power-off command (sends 'X').")
+@click.option("--read-seconds", default=0.6, show_default=True, type=float, help="How long to read after sending.")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON output.")
+@click.pass_context
+def shutdown(ctx, read_seconds, as_json):
+    # 'X' = XDR_P_SHUTDOWN
+    _send_and_print(ctx, "X", read_seconds, as_json)
 
 if __name__ == "__main__":
     cli()
