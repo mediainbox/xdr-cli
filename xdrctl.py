@@ -525,5 +525,69 @@ def shutdown(ctx, read_seconds, as_json):
     # 'X' = XDR_P_SHUTDOWN
     _send_and_print(ctx, "X", read_seconds, as_json)
 
+# -----------------------------
+# Full initialization sequence
+# -----------------------------
+@cli.command(name="init-full", help="Run full initialization: x + defaults (override via flags), optional tune and status.")
+@click.option("--mode", default=0, show_default=True, type=int, help="M (mode), default 0=FM.")
+@click.option("--volume", default=100, show_default=True, type=int, help="Y (volume) 0..100.")
+@click.option("--deemp", default=0, show_default=True, type=int, help="D (de-emphasis) e.g., 0=50us, 1=75us.")
+@click.option("--agc", default=2, show_default=True, type=int, help="A (AGC mode).")
+@click.option("--filter", "if_filter", default=-1, show_default=True, type=int, help="F (IF filter), -1=auto.")
+@click.option("--bandwidth", default=0, show_default=True, type=int, help="W (IF bandwidth).")
+@click.option("--antenna", default=0, show_default=True, type=int, help="Z (antenna index).")
+@click.option("--gain", default=0, show_default=True, type=int, help="G (gain).")
+@click.option("--daa", default=0, show_default=True, type=int, help="V (DAA).")
+@click.option("--squelch", default=0, show_default=True, type=int, help="Q (squelch).")
+@click.option("--rotator", default=0, show_default=True, type=int, help="C (rotator).")
+@click.option("--sampling", default=0, show_default=True, type=int, help="I sampling.")
+@click.option("--detector", default=0, show_default=True, type=int, help="I detector (0/1).")
+@click.option("--freq-khz", type=int, default=None, help="Optional T (tune) in kHz.")
+@click.option("--status", is_flag=True, default=False, help="Append 'S' at the end to dump state.")
+@click.option("--read-seconds", default=2.0, show_default=True, type=float, help="Total read window after sending the sequence.")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON output (one object per event).")
+@click.pass_context
+def init_full(ctx, mode, volume, deemp, agc, if_filter, bandwidth, antenna, gain, daa, squelch, rotator,
+              sampling, detector, freq_khz, status, read_seconds, as_json):
+    """
+    Sends: x, M, Y, D, A, F, W, Z, G, V, Q, C, I[, T][, S]
+    in a single authenticated connection, then reads for --read-seconds.
+    """
+    s, banner = connect_and_auth(ctx.obj["host"], ctx.obj["port"], ctx.obj["password"])
+
+    cmds = [
+        "x",
+        f"M{mode}",
+        f"Y{volume}",
+        f"D{deemp}",
+        f"A{agc}",
+        f"F{if_filter}",
+        f"W{bandwidth}",
+        f"Z{antenna}",
+        f"G{gain:02d}",
+        f"V{daa}",
+        f"Q{squelch}",
+        f"C{rotator}",
+        f"I{sampling},{detector}",
+    ]
+    if freq_khz is not None:
+        cmds.append(f"T{freq_khz}")
+    if status:
+        cmds.append("S")
+
+    payload = "\n".join(cmds) + "\n"
+    send_line(s, payload)
+
+    data = drain_read(s, timeout=read_seconds)
+    s.close()
+
+    if as_json:
+        lines = data.decode("utf-8", errors="replace").splitlines()
+        evs = parse_lines_to_events(lines)
+        for ev in evs:
+            print(json.dumps(ev, ensure_ascii=False))
+    else:
+        print_lines("", data)
+
 if __name__ == "__main__":
     cli()
