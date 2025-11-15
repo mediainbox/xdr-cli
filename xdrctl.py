@@ -9,7 +9,7 @@ import re
 import string
 import click
 
-DEFAULT_HOST = "127.0.0.1"
+DEFAULT_HOST = "100.127.46.12"
 DEFAULT_PORT = 7373  # xdrd default
 
 # -----------------------------
@@ -439,6 +439,31 @@ def raw(ctx, text, read_seconds, as_json):
     else:
         print_lines("", data)
 
+@cli.command(help="Send a scan command")
+@click.option("--read-seconds", default=5, show_default=True, type=float)
+@click.option("--json", "as_json", is_flag=True, default=True)
+@click.pass_context
+def scan(ctx, read_seconds, as_json):
+    s, _ = connect_and_auth(ctx.obj["host"], ctx.obj["port"], ctx.obj["password"])
+    send_line(s, "Sa86000\n")
+    send_line(s, "Sb108000\n")
+    send_line(s, "Sc50\n")
+    send_line(s, "Sw56000\n")
+    send_line(s, "S\n")
+
+    while True:
+        data = drain_read(s, timeout=read_seconds)
+        lines = data.decode("utf-8", errors="replace").splitlines()
+        if lines[0][0] == 'U':
+            if as_json:
+                for ev in parse_lines_to_events(lines):
+                    print(json.dumps(ev, ensure_ascii=False))
+            else:
+                print_lines("", data)
+            break
+        
+    s.close()
+    
 # -----------------------------
 # Command wrappers (with --json on every cmd)
 # -----------------------------
