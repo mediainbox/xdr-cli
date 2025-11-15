@@ -9,7 +9,7 @@ import re
 import string
 import click
 
-DEFAULT_HOST = "100.127.46.12"
+DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 7373  # xdrd default
 
 # -----------------------------
