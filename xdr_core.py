@@ -441,7 +441,7 @@ def xdr_scan(ctx, read_seconds, as_json):
 # -----------------------------
 # Command wrappers (with --json on every cmd)
 # -----------------------------
-def xdr_send_and_print(ctx, line_to_send, read_seconds, as_json, read_back=True):
+def _send_and_print(ctx, line_to_send, read_seconds, as_json, read_back=True):
     s, _ = connect_and_auth(ctx.obj["host"], ctx.obj["port"], ctx.obj["password"])
     send_line(s, line_to_send + "\n")
     data = drain_read(s, timeout=read_seconds) if read_back else b""
@@ -453,61 +453,60 @@ def xdr_send_and_print(ctx, line_to_send, read_seconds, as_json, read_back=True)
     else:
         print_lines("", data)
 
-def tune(ctx, khz, read_seconds, as_json):
+def xdr_tune(ctx, khz, read_seconds, as_json):
     _send_and_print(ctx, f"T{khz}", read_seconds, as_json)
 
-def bandwidth(ctx, code, read_seconds, as_json):
+def xdr_bandwidth(ctx, code, read_seconds, as_json):
     _send_and_print(ctx, f"W{code}", read_seconds, as_json)
 
 
-def filter(ctx, code, read_seconds, as_json):
+def xdr_filter(ctx, code, read_seconds, as_json):
     _send_and_print(ctx, f"F{code}", read_seconds, as_json)
 
-
-def mode(ctx, mode, read_seconds, as_json):
+def xdr_mode(ctx, mode, read_seconds, as_json):
     _send_and_print(ctx, f"M{mode}", read_seconds, as_json)
 
 
-def volume(ctx, value, read_seconds, as_json):
+def xdr_volume(ctx, value, read_seconds, as_json):
     _send_and_print(ctx, f"Y{value}", read_seconds, as_json)
 
 
-def deemp(ctx, value, read_seconds, as_json):
+def xdr_deemp(ctx, value, read_seconds, as_json):
     _send_and_print(ctx, f"D{value}", read_seconds, as_json)
 
 
-def agc(ctx, value, read_seconds, as_json):
+def xdr_agc(ctx, value, read_seconds, as_json):
     _send_and_print(ctx, f"A{value}", read_seconds, as_json)
 
 
-def antenna(ctx, value, read_seconds, as_json):
+def xdr_antenna(ctx, value, read_seconds, as_json):
     _send_and_print(ctx, f"Z{value}", read_seconds, as_json)
 
 
-def gain(ctx, value, read_seconds, as_json):
+def xdr_gain(ctx, value, read_seconds, as_json):
     _send_and_print(ctx, f"G{value:02d}", read_seconds, as_json)
 
-def daa(ctx, value, read_seconds, as_json):
+def xdr_daa(ctx, value, read_seconds, as_json):
     _send_and_print(ctx, f"V{value}", read_seconds, as_json)
 
 
-def squelch(ctx, value, read_seconds, as_json):
+def xdr_squelch(ctx, value, read_seconds, as_json):
     _send_and_print(ctx, f"Q{value}", read_seconds, as_json)
 
 
-def rotator(ctx, value, read_seconds, as_json):
+def xdr_rotator(ctx, value, read_seconds, as_json):
     _send_and_print(ctx, f"C{value}", read_seconds, as_json)
 
-def interval(ctx, sampling, detector, read_seconds, as_json):
+def xdr_interval(ctx, sampling, detector, read_seconds, as_json):
     line = f"I{sampling},{detector}" if detector is not None else f"I{sampling}"
     _send_and_print(ctx, line, read_seconds, as_json)
 
 
-def init_cmd(ctx, read_seconds, as_json):
+def xdr_init_cmd(ctx, read_seconds, as_json):
     _send_and_print(ctx, "x", read_seconds, as_json)
 
 
-def shutdown(ctx, read_seconds, as_json):
+def xdr_shutdown(ctx, read_seconds, as_json):
     _send_and_print(ctx, "X", read_seconds, as_json)
 
 def xdr_init_full(ctx, mode, volume, deemp, agc, if_filter, bandwidth, antenna, gain, daa,

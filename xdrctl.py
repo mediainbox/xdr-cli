@@ -9,7 +9,10 @@ import re
 import string
 import click
 
-from xdr_core import xdr_status, xdr_listen, xdr_raw, xdr_scan, xdr_init_full, xdr_send_and_print
+from xdr_core import xdr_status, xdr_listen, xdr_raw, xdr_scan, xdr_init_full
+from xdr_core import xdr_tune, xdr_bandwidth, xdr_filter, xdr_mode, xdr_volume, xdr_deemp
+from xdr_core import xdr_agc, xdr_antenna, xdr_gain, xdr_daa, xdr_squelch, xdr_rotator
+from xdr_core import xdr_interval, xdr_init_cmd, xdr_shutdown
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 7373  # xdrd default
@@ -77,7 +80,7 @@ def scan(ctx, read_seconds, as_json):
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.pass_context
 def tune(ctx, khz, read_seconds, as_json):
-    _send_and_print(ctx, f"T{khz}", read_seconds, as_json)
+    xdr_tune(ctx, khz, read_seconds, as_json)
 
 @cli.command(help="IF bandwidth (W).")
 @click.argument("code", type=int)
@@ -85,7 +88,7 @@ def tune(ctx, khz, read_seconds, as_json):
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.pass_context
 def bandwidth(ctx, code, read_seconds, as_json):
-    _send_and_print(ctx, f"W{code}", read_seconds, as_json)
+    xdr_bandwidth(ctx, code, read_seconds, as_json)
 
 @cli.command(help="IF filter (F).")
 @click.argument("code", type=int)
@@ -93,7 +96,7 @@ def bandwidth(ctx, code, read_seconds, as_json):
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.pass_context
 def filter(ctx, code, read_seconds, as_json):
-    _send_and_print(ctx, f"F{code}", read_seconds, as_json)
+    xdr_filter(ctx, code, read_seconds, as_json)
 
 @cli.command(help="Mode (M).")
 @click.argument("mode", type=int)
@@ -101,7 +104,7 @@ def filter(ctx, code, read_seconds, as_json):
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.pass_context
 def mode(ctx, mode, read_seconds, as_json):
-    _send_and_print(ctx, f"M{mode}", read_seconds, as_json)
+    xdr_mode(ctx, mode, read_seconds, as_json)
 
 @cli.command(help="Volume (Y). 0..100.")
 @click.argument("value", type=int)
@@ -109,7 +112,7 @@ def mode(ctx, mode, read_seconds, as_json):
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.pass_context
 def volume(ctx, value, read_seconds, as_json):
-    _send_and_print(ctx, f"Y{value}", read_seconds, as_json)
+    xdr_volume(ctx, value, read_seconds, as_json)
 
 @cli.command(help="De-emphasis (D).")
 @click.argument("value", type=int)
@@ -117,7 +120,7 @@ def volume(ctx, value, read_seconds, as_json):
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.pass_context
 def deemp(ctx, value, read_seconds, as_json):
-    _send_and_print(ctx, f"D{value}", read_seconds, as_json)
+    xdr_deemp(ctx, value, read_seconds, as_json)
 
 @cli.command(help="AGC (A).")
 @click.argument("value", type=int)
@@ -125,7 +128,7 @@ def deemp(ctx, value, read_seconds, as_json):
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.pass_context
 def agc(ctx, value, read_seconds, as_json):
-    _send_and_print(ctx, f"A{value}", read_seconds, as_json)
+    xdr_agc(ctx, value, read_seconds, as_json)
 
 @cli.command(help="Antenna (Z).")
 @click.argument("value", type=int)
@@ -133,7 +136,7 @@ def agc(ctx, value, read_seconds, as_json):
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.pass_context
 def antenna(ctx, value, read_seconds, as_json):
-    _send_and_print(ctx, f"Z{value}", read_seconds, as_json)
+    xdr_antenna(ctx, value, read_seconds, as_json)
 
 @cli.command(help="Gain (G).")
 @click.argument("value", type=int)
@@ -141,7 +144,7 @@ def antenna(ctx, value, read_seconds, as_json):
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.pass_context
 def gain(ctx, value, read_seconds, as_json):
-    _send_and_print(ctx, f"G{value:02d}", read_seconds, as_json)
+    xdr_gain(ctx, value, read_seconds, as_json)
 
 @cli.command(help="DAA (V).")
 @click.argument("value", type=int)
@@ -149,7 +152,7 @@ def gain(ctx, value, read_seconds, as_json):
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.pass_context
 def daa(ctx, value, read_seconds, as_json):
-    _send_and_print(ctx, f"V{value}", read_seconds, as_json)
+    xdr_daa(ctx, value, read_seconds, as_json)
 
 @cli.command(help="Squelch (Q).")
 @click.argument("value", type=int)
@@ -157,7 +160,7 @@ def daa(ctx, value, read_seconds, as_json):
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.pass_context
 def squelch(ctx, value, read_seconds, as_json):
-    _send_and_print(ctx, f"Q{value}", read_seconds, as_json)
+    xdr_squelch(ctx, value, read_seconds, as_json)
 
 @cli.command(help="Rotator (C).")
 @click.argument("value", type=int)
@@ -165,7 +168,7 @@ def squelch(ctx, value, read_seconds, as_json):
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.pass_context
 def rotator(ctx, value, read_seconds, as_json):
-    _send_and_print(ctx, f"C{value}", read_seconds, as_json)
+    xdr_rotator(ctx, value, read_seconds, as_json)
 
 @cli.command(help="Interval (I). Accepts either '--sampling N --detector M' or just '--sampling N'.")
 @click.option("--sampling", required=True, type=int)
@@ -174,8 +177,7 @@ def rotator(ctx, value, read_seconds, as_json):
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.pass_context
 def interval(ctx, sampling, detector, read_seconds, as_json):
-    line = f"I{sampling},{detector}" if detector is not None else f"I{sampling}"
-    _send_and_print(ctx, line, read_seconds, as_json)
+    xdr_interval(ctx, sampling, detector, read_seconds, as_json)
 
 # -----------------------------
 # Startup / Shutdown / Init-full
@@ -185,14 +187,14 @@ def interval(ctx, sampling, detector, read_seconds, as_json):
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.pass_context
 def init_cmd(ctx, read_seconds, as_json):
-    _send_and_print(ctx, "x", read_seconds, as_json)
+    xdr_init_cmd(ctx, read_seconds, as_json)
 
 @cli.command(help="Shutdown (sends 'X').")
 @click.option("--read-seconds", default=0.6, show_default=True, type=float)
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.pass_context
 def shutdown(ctx, read_seconds, as_json):
-    _send_and_print(ctx, "X", read_seconds, as_json)
+    xdr_shutdown(ctx, read_seconds, as_json)
 
 @cli.command(name="init-full", help="x + defaults (override via flags), optional tune and status.")
 @click.option("--mode", default=0, show_default=True, type=int)
