@@ -31,157 +31,304 @@ def after_request(response):
 # Configuration
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 5000
-DEFAULT_XDRD_HOST = "100.127.46.12"
-DEFAULT_XDRD_PORT = 7373
+
+# Default configuration for up to 4 XDRD hosts
+DEFAULT_XDRD_CONFIGS = [
+    {"host": "100.127.46.12", "port": 7373, "name": "XDR-1"},  # Default first host
+    {"host": None, "port": 7373, "name": "XDR-2"},  # Disabled by default
+    {"host": None, "port": 7373, "name": "XDR-3"},  # Disabled by default
+    {"host": None, "port": 7373, "name": "XDR-4"}   # Disabled by default
+]
 
 # Get configuration from environment variables
 HOST = os.environ.get("HOST", DEFAULT_HOST)
 PORT = int(os.environ.get("PORT", DEFAULT_PORT))
-XDRD_HOST = os.environ.get("XDRD_HOST", DEFAULT_XDRD_HOST)
-XDRD_PORT = int(os.environ.get("XDRD_PORT", DEFAULT_XDRD_PORT))
-XDRD_PASSWORD = os.environ.get("XDRD_PASSWORD")
 
-# Create context for XDR functions
+# Load XDRD configurations from environment
+XDRD_CONFIGS = []
+for i in range(4):
+    idx = i + 1  # 1-based index for environment variables
+    host = os.environ.get(f"XDRD_{idx}_HOST", DEFAULT_XDRD_CONFIGS[i]["host"] if i < len(DEFAULT_XDRD_CONFIGS) else None)
+    port = int(os.environ.get(f"XDRD_{idx}_PORT", DEFAULT_XDRD_CONFIGS[i]["port"] if i < len(DEFAULT_XDRD_CONFIGS) else 7373))
+    name = os.environ.get(f"XDRD_{idx}_NAME", DEFAULT_XDRD_CONFIGS[i]["name"] if i < len(DEFAULT_XDRD_CONFIGS) else f"XDR-{idx}")
+    password = os.environ.get(f"XDRD_{idx}_PASSWORD")
+
+    if host:  # Only add if host is configured
+        XDRD_CONFIGS.append({
+            "id": idx,
+            "host": host,
+            "port": port,
+            "name": name,
+            "password": password
+        })
+
+if not XDRD_CONFIGS:
+    raise ValueError("At least one XDRD host must be configured")
+
+# XDR Context Manager
 class XDRContext:
-    obj = {}
-    def __init__(self, host, port, password=None):
-        self.obj['host'] = host
-        self.obj['port'] = port
-        self.obj['password'] = password
+    _instances = {}
 
-# Create context for XDR functions
-xdr_ctx = XDRContext(XDRD_HOST, XDRD_PORT, XDRD_PASSWORD)
+    @classmethod
+    def get_context(cls, host_id):
+        """Get or create an XDR context for the specified host ID"""
+        if host_id not in cls._instances:
+            config = next((c for c in XDRD_CONFIGS if c["id"] == host_id), None)
+            if not config:
+                raise ValueError(f"No configuration found for XDRD host ID {host_id}")
+            cls._instances[host_id] = cls._create_context(config)
+        return cls._instances[host_id]
+
+    @classmethod
+    def _create_context(cls, config):
+        """Create a new XDR context from config"""
+        ctx = XDRContext()
+        ctx.obj = {
+            'host': config["host"],
+            'port': config["port"],
+            'password': config["password"],
+            'id': config["id"],
+            'name': config["name"]
+        }
+        return ctx
+
+    @classmethod
+    def list_contexts(cls):
+        """List all configured XDR contexts"""
+        return [{
+            'id': ctx.obj['id'],
+            'name': ctx.obj['name'],
+            'host': ctx.obj['host'],
+            'port': ctx.obj['port']
+        } for ctx in cls._instances.values()]
+
+    def __init__(self):
+        self.obj = {}
+
+# Initialize contexts for all configured hosts
+for config in XDRD_CONFIGS:
+    XDRContext.get_context(config["id"])
 
 # API Endpoints
-@app.route('/api/status/<int:status_id>', methods=['GET', 'OPTIONS'])
-def get_status(status_id=None):
+@app.route('/api/xdrs', methods=['GET'])
+def list_xdrs():
+    """List all configured XDR receivers"""
+    return jsonify({
+        'xdrs': XDRContext.list_contexts(),
+        'count': len(XDRContext.list_contexts())
+    })
+
+@app.route('/api/status/<int:xdrid>', methods=['GET', 'OPTIONS'], defaults={'xdrid': 1})
+def get_status(xdrid):
     if request.method == 'OPTIONS':
         return make_response()
 
-    read_seconds = float(request.args.get('read_seconds', 1.0))
-    as_json = False
-    result = xdr_status(xdr_ctx, read_seconds, as_json)
-    if status_id is not None:
-        if 0 <= status_id:
-            return jsonify(result)
-        return jsonify({"error": "Status ID out of range"}), 404
-    return jsonify(result)
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 1.0))
+        as_json = False
+        result = xdr_status(xdr_ctx, read_seconds, as_json)
 
-@app.route('/api/tune/<int:khz>', methods=['POST', 'OPTIONS'])
-def tune(khz):
-    read_seconds = float(request.args.get('read_seconds', 0.6))
-    as_json = False
-    result = xdr_tune(xdr_ctx, khz, read_seconds, as_json)
-    return jsonify(result)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
-@app.route('/api/bandwidth/<int:code>', methods=['POST', 'OPTIONS'])
-def set_bandwidth(code):
-    read_seconds = float(request.args.get('read_seconds', 0.6))
-    as_json = False
-    result = xdr_bandwidth(xdr_ctx, code, read_seconds, as_json)
-    return jsonify(result)
+@app.route('/api/<int:xdrid>/tune/<int:khz>', methods=['POST', 'OPTIONS'])
+@app.route('/api/tune/<int:khz>', methods=['POST', 'OPTIONS'], defaults={'xdrid': 1})
+def tune(xdrid, khz):
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 0.6))
+        as_json = False
+        result = xdr_tune(xdr_ctx, khz, read_seconds, as_json)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
-@app.route('/api/filter/<int:code>', methods=['POST', 'OPTIONS'])
-def set_filter(code):
-    read_seconds = float(request.args.get('read_seconds', 0.6))
-    as_json = False
-    result = xdr_filter(xdr_ctx, code, read_seconds, as_json)
-    return jsonify(result)
+@app.route('/api/<int:xdrid>/bandwidth/<int:code>', methods=['POST', 'OPTIONS'])
+@app.route('/api/bandwidth/<int:code>', methods=['POST', 'OPTIONS'], defaults={'xdrid': 1})
+def set_bandwidth(xdrid, code):
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 0.6))
+        as_json = False
+        result = xdr_bandwidth(xdr_ctx, code, read_seconds, as_json)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
-@app.route('/api/mode/<int:mode>', methods=['POST'])
-def set_mode(mode):
-    read_seconds = float(request.args.get('read_seconds', 0.6))
-    as_json = False
-    result = xdr_mode(xdr_ctx, mode, read_seconds, as_json)
-    return jsonify(result)
+@app.route('/api/<int:xdrid>/filter/<int:code>', methods=['POST', 'OPTIONS'])
+@app.route('/api/filter/<int:code>', methods=['POST', 'OPTIONS'], defaults={'xdrid': 1})
+def set_filter(xdrid, code):
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 0.6))
+        as_json = False
+        result = xdr_filter(xdr_ctx, code, read_seconds, as_json)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
-@app.route('/api/volume/<int:value>', methods=['POST'])
-def set_volume(value):
-    read_seconds = float(request.args.get('read_seconds', 0.6))
-    as_json = False
-    result = xdr_volume(xdr_ctx, value, read_seconds, as_json)
-    return jsonify(result)
+@app.route('/api/<int:xdrid>/mode/<int:mode>', methods=['POST'])
+@app.route('/api/mode/<int:mode>', methods=['POST'], defaults={'xdrid': 1})
+def set_mode(xdrid, mode):
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 0.6))
+        as_json = False
+        result = xdr_mode(xdr_ctx, mode, read_seconds, as_json)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
-@app.route('/api/deemp/<int:value>', methods=['POST'])
-def set_deemp(value):
-    read_seconds = float(request.args.get('read_seconds', 0.6))
-    as_json = False
-    result = xdr_deemp(xdr_ctx, value, read_seconds, as_json)
-    return jsonify(result)
+@app.route('/api/<int:xdrid>/volume/<int:value>', methods=['POST'])
+@app.route('/api/volume/<int:value>', methods=['POST'], defaults={'xdrid': 1})
+def set_volume(xdrid, value):
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 0.6))
+        as_json = False
+        result = xdr_volume(xdr_ctx, value, read_seconds, as_json)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
-@app.route('/api/agc/<int:value>', methods=['POST'])
-def set_agc(value):
-    read_seconds = float(request.args.get('read_seconds', 0.6))
-    as_json = False
-    result = xdr_agc(xdr_ctx, value, read_seconds, as_json)
-    return jsonify(result)
+@app.route('/api/<int:xdrid>/deemp/<int:value>', methods=['POST'])
+@app.route('/api/deemp/<int:value>', methods=['POST'], defaults={'xdrid': 1})
+def set_deemp(xdrid, value):
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 0.6))
+        as_json = False
+        result = xdr_deemp(xdr_ctx, value, read_seconds, as_json)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
-@app.route('/api/antenna/<int:value>', methods=['POST'])
-def set_antenna(value):
-    read_seconds = float(request.args.get('read_seconds', 0.6))
-    as_json = False
-    result = xdr_antenna(xdr_ctx, value, read_seconds, as_json)
-    return jsonify(result)
+@app.route('/api/<int:xdrid>/agc/<int:value>', methods=['POST'])
+@app.route('/api/agc/<int:value>', methods=['POST'], defaults={'xdrid': 1})
+def set_agc(xdrid, value):
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 0.6))
+        as_json = False
+        result = xdr_agc(xdr_ctx, value, read_seconds, as_json)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
-@app.route('/api/gain/<int:value>', methods=['POST'])
-def set_gain(value):
-    read_seconds = float(request.args.get('read_seconds', 0.6))
-    as_json = False
-    result = xdr_gain(xdr_ctx, value, read_seconds, as_json)
-    return jsonify(result)
+@app.route('/api/<int:xdrid>/antenna/<int:value>', methods=['POST'])
+@app.route('/api/antenna/<int:value>', methods=['POST'], defaults={'xdrid': 1})
+def set_antenna(xdrid, value):
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 0.6))
+        as_json = False
+        result = xdr_antenna(xdr_ctx, value, read_seconds, as_json)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
-@app.route('/api/daa/<int:value>', methods=['POST'])
-def set_daa(value):
-    read_seconds = float(request.args.get('read_seconds', 0.6))
-    as_json = False
-    result = xdr_daa(xdr_ctx, value, read_seconds, as_json)
-    return jsonify(result)
+@app.route('/api/<int:xdrid>/gain/<int:value>', methods=['POST'])
+@app.route('/api/gain/<int:value>', methods=['POST'], defaults={'xdrid': 1})
+def set_gain(xdrid, value):
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 0.6))
+        as_json = False
+        result = xdr_gain(xdr_ctx, value, read_seconds, as_json)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
-@app.route('/api/squelch/<int:value>', methods=['POST'])
-def set_squelch(value):
-    read_seconds = float(request.args.get('read_seconds', 0.6))
-    as_json = False
-    result = xdr_squelch(xdr_ctx, value, read_seconds, as_json)
-    return jsonify(result)
+@app.route('/api/<int:xdrid>/daa/<int:value>', methods=['POST'])
+@app.route('/api/daa/<int:value>', methods=['POST'], defaults={'xdrid': 1})
+def set_daa(xdrid, value):
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 0.6))
+        as_json = False
+        result = xdr_daa(xdr_ctx, value, read_seconds, as_json)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
-@app.route('/api/rotator/<int:value>', methods=['POST'])
-def set_rotator(value):
-    read_seconds = float(request.args.get('read_seconds', 0.6))
-    as_json = False
-    result = xdr_rotator(xdr_ctx, value, read_seconds, as_json)
-    return jsonify(result)
+@app.route('/api/<int:xdrid>/squelch/<int:value>', methods=['POST'])
+@app.route('/api/squelch/<int:value>', methods=['POST'], defaults={'xdrid': 1})
+def set_squelch(xdrid, value):
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 0.6))
+        as_json = False
+        result = xdr_squelch(xdr_ctx, value, read_seconds, as_json)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
-@app.route('/api/interval', methods=['POST'])
-def set_interval():
-    data = request.get_json()
-    sampling = data.get('sampling')
-    detector = data.get('detector')
-    read_seconds = float(request.args.get('read_seconds', 0.6))
-    as_json = False
+@app.route('/api/<int:xdrid>/rotator/<int:value>', methods=['POST'])
+@app.route('/api/rotator/<int:value>', methods=['POST'], defaults={'xdrid': 1})
+def set_rotator(xdrid, value):
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 0.6))
+        as_json = False
+        result = xdr_rotator(xdr_ctx, value, read_seconds, as_json)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
-    result = xdr_interval(xdr_ctx, sampling, detector, read_seconds, as_json)
-    return jsonify(result)
+@app.route('/api/<int:xdrid>/interval', methods=['POST'])
+@app.route('/api/interval', methods=['POST'], defaults={'xdrid': 1})
+def set_interval(xdrid):
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        data = request.get_json()
+        if not data or 'interval' not in data:
+            return jsonify({"error": "Missing interval parameter"}), 400
 
-@app.route('/api/init', methods=['POST'])
-def init():
-    read_seconds = float(request.args.get('read_seconds', 1.0))
-    as_json = False
-    result = xdr_init_cmd(xdr_ctx, read_seconds, as_json)
-    return jsonify(result)
+        interval = int(data['interval'])
+        read_seconds = float(request.args.get('read_seconds', 0.6))
+        as_json = False
+        result = xdr_interval(xdr_ctx, interval, read_seconds, as_json)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
-@app.route('/api/shutdown', methods=['POST'])
-def shutdown():
-    read_seconds = float(request.args.get('read_seconds', 0.6))
-    as_json = False
-    result = xdr_shutdown(xdr_ctx, read_seconds, as_json)
-    return jsonify(result)
+@app.route('/api/<int:xdrid>/init', methods=['POST'])
+@app.route('/api/init', methods=['POST'], defaults={'xdrid': 1})
+def init(xdrid):
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 0.6))
+        as_json = False
+        result = xdr_init_cmd(xdr_ctx, read_seconds, as_json)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
-@app.route('/api/scan', methods=['GET'])
-def scan():
-    read_seconds = float(request.args.get('read_seconds', 5.0))
-    as_json = False
-    result = xdr_scan(xdr_ctx, read_seconds, as_json)
-    return jsonify(result)
+@app.route('/api/<int:xdrid>/shutdown', methods=['POST'])
+@app.route('/api/shutdown', methods=['POST'], defaults={'xdrid': 1})
+def shutdown(xdrid):
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 0.6))
+        as_json = False
+        result = xdr_shutdown(xdr_ctx, read_seconds, as_json)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+
+@app.route('/api/<int:xdrid>/scan', methods=['POST'])
+@app.route('/api/scan', methods=['POST'], defaults={'xdrid': 1})
+def scan(xdrid):
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 0.6))
+        as_json = False
+        result = xdr_scan(xdr_ctx, read_seconds, as_json)
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
 if __name__ == '__main__':
     app.run(host=HOST,
