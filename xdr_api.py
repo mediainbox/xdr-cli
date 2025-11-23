@@ -318,9 +318,11 @@ def shutdown(xdrid):
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
 
-@app.route('/api/<int:xdrid>/scan', methods=['POST'])
-@app.route('/api/scan', methods=['POST'], defaults={'xdrid': 1})
+@app.route('/api/<int:xdrid>/scan', methods=['GET'])
+@app.route('/api/scan', methods=['GET'], defaults={'xdrid': 1})
 def scan(xdrid):
+    if request.method == 'OPTIONS':
+        return make_response()
     try:
         xdr_ctx = XDRContext.get_context(xdrid)
         read_seconds = float(request.args.get('read_seconds', 0.6))
