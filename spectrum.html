@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spectrum Graph Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button, select, input {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #f0f0f0;
+        }
+        #spectrumChart {
+            width: 1000px;  /* Fixed width */
+            height: 400px;  /* Fixed height */
+            margin: 20px auto; /* Center the canvas */
+            display: block; /* Ensure it's a block element */
+            max-width: 100%; /* Ensure it's responsive on smaller screens */
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Spectrum Graph</h1>
+        
+        <div class="controls">
+            <select id="frequencyRange">
+                <option value="87.5-108">FM Band (87.5-108 MHz)</option>
+                <option value="500-1000">500-1000 kHz</option>
+                <option value="custom">Custom Range</option>
+            </select>
+            
+            <div id="customRange" style="display: none;">
+                <input type="number" id="minFreq" placeholder="Min Frequency" step="0.1">
+                <span>to</span>
+                <input type="number" id="maxFreq" placeholder="Max Frequency" step="0.1">
+                <span>MHz</span>
+            </div>
+            
+            <button id="refreshBtn">Refresh Data</button>
+            <button id="pauseBtn">Pause Updates</button>
+        </div>
+        
+        <div id="loading" class="loading">Loading spectrum data...</div>
+        <canvas id="spectrumChart"></canvas>
+    </div>
+
+    <script>
+        // Chart instance
+        let spectrumChart;
+        let isPaused = false;
+        let updateInterval;
+        
+        // DOM Elements
+        const frequencyRange = document.getElementById('frequencyRange');
+        const customRange = document.getElementById('customRange');
+        const minFreqInput = document.getElementById('minFreq');
+        const maxFreqInput = document.getElementById('maxFreq');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const loadingElement = document.getElementById('loading');
+        const ctx = document.getElementById('spectrumChart').getContext('2d');
+        
+        // Toggle custom range inputs
+        frequencyRange.addEventListener('change', (e) => {
+            customRange.style.display = e.target.value === 'custom' ? 'block' : 'none';
+            if (e.target.value !== 'custom') {
+                const [min, max] = e.target.value.split('-').map(Number);
+                fetchSpectrumData(min, max);
+            }
+        });
+        
+        // Handle custom range submission
+        document.getElementById('customRange').addEventListener('change', () => {
+            const minFreq = parseFloat(minFreqInput.value);
+            const maxFreq = parseFloat(maxFreqInput.value);
+            
+            if (minFreq && maxFreq && minFreq < maxFreq) {
+                fetchSpectrumData(minFreq, maxFreq);
+            }
+        });
+        
+        // Refresh button
+        refreshBtn.addEventListener('click', () => {
+            if (frequencyRange.value === 'custom') {
+                const minFreq = parseFloat(minFreqInput.value);
+                const maxFreq = parseFloat(maxFreqInput.value);
+                if (minFreq && maxFreq && minFreq < maxFreq) {
+                    fetchSpectrumData(minFreq, maxFreq);
+                }
+            } else {
+                const [min, max] = frequencyRange.value.split('-').map(Number);
+                fetchSpectrumData(min, max);
+            }
+        });
+        
+        // Pause/Resume button
+        pauseBtn.addEventListener('click', () => {
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? 'Resume Updates' : 'Pause Updates';
+            
+            if (isPaused) {
+                clearInterval(updateInterval);
+            } else {
+                startAutoRefresh();
+            }
+        });
+        
+        // Initialize chart
+        function initChart(labels, data) {
+            // Get the canvas element
+            let canvas = document.getElementById('spectrumChart');
+            if (!canvas) {
+                console.error('Canvas element not found');
+                return false;
+            }
+            
+            // Set explicit canvas dimensions
+            const maxCanvasWidth = 2048; // Maximum width to prevent canvas size issues
+            const maxCanvasHeight = 2048; // Maximum height to prevent canvas size issues
+            canvas.width = Math.min(1000, maxCanvasWidth);
+            canvas.height = Math.min(400, maxCanvasHeight);
+            
+            // Ensure canvas doesn't affect document flow
+            canvas.style.display = 'block';
+            canvas.style.margin = '20px auto';
+            
+            // Get the 2D context
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                console.error('Could not get 2D context');
+                return false;
+            }
+            
+            // Destroy existing chart instance if it exists
+            if (window.spectrumChart) {
+                try {
+                    window.spectrumChart.destroy();
+                } catch (e) {
+                    console.warn('Error destroying previous chart:', e);
+                }
+                window.spectrumChart = null;
+            }
+            
+            
+            try {
+                spectrumChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Signal Strength (dB)',
+                            data: data,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1,
+                            fill: false,
+                            pointRadius: 0,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: false, // Disable responsive to prevent auto-resizing
+                        maintainAspectRatio: false,
+                        devicePixelRatio: 1, // Prevent HiDPI scaling issues
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                position: 'bottom',
+                                title: {
+                                    display: true,
+                                    text: 'Frequency (MHz)'
+                                },
+                                min: Math.min(...labels),
+                                max: Math.max(...labels)
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Signal Strength (dB)'
+                                }
+                            }
+                        },
+                        animation: {
+                            duration: 0
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.parsed.x.toFixed(2)} MHz: ${context.parsed.y.toFixed(2)} dB`;
+                                    }
+                                }
+                            },
+                            zoom: false // Disable zoom to prevent infinite scroll
+                        },
+                        layout: {
+                            padding: 10
+                        },
+                        elements: {
+                            line: {
+                                borderWidth: 1
+                            }
+                        }
+                    }
+                });  
+            } catch (e) {
+                console.error('Error creating chart:', e);
+                loadingElement.textContent = 'Error creating chart: ' + e.message;
+                loadingElement.style.color = 'red';
+                return false;
+            }
+            return true;
+        }
+        
+        // Fetch spectrum data from API
+        async function fetchSpectrumData(minFreq = 87.5, maxFreq = 108) {
+            try {
+                loadingElement.style.display = 'block';
+                loadingElement.textContent = 'Loading spectrum data...';
+                loadingElement.style.color = '#666';
+                
+                // API endpoint - update this to your actual API endpoint
+                const apiUrl = `http://localhost:5000/api/scan`;
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                let data = await response.text();
+                
+                // Parse the custom data format: ["U86000=15.85,86100=11.75,...]
+                try {
+                    // Remove the ["U and "] from the string
+                    data = data.replace(/^\["U|"\]$/g, '');
+                    
+                    // Split into frequency=strength pairs
+                    const pairs = data.split(',');
+                    const frequencies = [];
+                    const strengths = [];
+                    
+                    // Process each pair
+                    for (const pair of pairs) {
+                        const [freq, strength] = pair.split('=');
+                        if (freq && strength) {
+                            // Convert frequency from kHz to MHz for display
+                            frequencies.push(parseFloat(freq) / 1000);
+                            strengths.push(parseFloat(strength));
+                        }
+                    }
+                    
+                    // Validate data
+                    if (frequencies.length === 0 || frequencies.length !== strengths.length) {
+                        throw new Error('Invalid data format after parsing');
+                    }
+                    
+                    // Update chart with new data and get the result
+                    const success = updateChart(frequencies, strengths);
+                    
+                    // Hide loading indicator if update was successful
+                    if (success) {
+                        loadingElement.style.display = 'none';
+                    }
+                    
+                    // Return the processed data in the expected format
+                    return { frequencies, strengths };
+                } catch (error) {
+                    console.error('Error parsing spectrum data:', error);
+                    throw new Error(`Failed to parse spectrum data: ${error.message}`);
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('Error fetching spectrum data:', error);
+                loadingElement.textContent = 'Error loading spectrum data: ' + error.message;
+                loadingElement.style.color = 'red';
+                
+                // If we're in an error state, try to recover on next update
+                if (updateInterval) {
+                    clearInterval(updateInterval);
+                    setTimeout(() => {
+                        startAutoRefresh(10000); // Try again after 10 seconds
+                    }, 10000);
+                }
+                
+                return null;
+            }
+        }
+        
+        // Update chart with new data
+        function updateChart(frequencies, strengths) {
+            if (!spectrumChart) {
+                if (!initChart(frequencies, strengths)) {
+                    return false;
+                }
+            } else {
+                try {
+                    // Only update if we have data
+                    if (frequencies && frequencies.length > 0 && strengths && strengths.length > 0) {
+                        spectrumChart.data.labels = frequencies;
+                        spectrumChart.data.datasets[0].data = strengths;
+                        
+                        // Use requestAnimationFrame to prevent canvas state issues
+                        window.requestAnimationFrame(() => {
+                            try {
+                                spectrumChart.update('none');
+                            } catch (e) {
+                                console.error('Error updating chart:', e);
+                                // If update fails, try to reinitialize the chart
+                                initChart(frequencies, strengths);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error updating chart data:', e);
+                    loadingElement.textContent = 'Error updating chart: ' + e.message;
+                    loadingElement.style.color = 'red';
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        // Auto-refresh data
+        function startAutoRefresh(interval = 5000) {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+            
+            updateInterval = setInterval(() => {
+                if (!isPaused) {
+                    if (frequencyRange.value === 'custom') {
+                        const minFreq = parseFloat(minFreqInput.value);
+                        const maxFreq = parseFloat(maxFreqInput.value);
+                        if (minFreq && maxFreq && minFreq < maxFreq) {
+                            fetchSpectrumData(minFreq, maxFreq);
+                        }
+                    } else {
+                        const [min, max] = frequencyRange.value.split('-').map(Number);
+                        fetchSpectrumData(min, max);
+                    }
+                }
+            }, interval);
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set default values for custom range
+            minFreqInput.value = '87.5';
+            maxFreqInput.value = '108';
+            
+            // Add resize handler to handle window resizing
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    if (spectrumChart) {
+                        try {
+                            spectrumChart.resize();
+                        } catch (e) {
+                            console.warn('Error resizing chart:', e);
+                        }
+                    }
+                }, 250);
+            });
+            
+            // Initial fetch with default FM band range
+            const initialLoad = async () => {
+                try {
+                    await fetchSpectrumData(87.5, 108);
+                    // Start auto-refresh after initial load
+                    startAutoRefresh();
+                } catch (e) {
+                    console.error('Initial load failed:', e);
+                    // Try again after a delay
+                    setTimeout(initialLoad, 5000);
+                }
+            };
+            
+            initialLoad();
+        });
+    </script>
+</body>
+</html>
