@@ -425,7 +425,7 @@ def xdr_scan(ctx, read_seconds, as_json):
     while True:
         data = drain_read(s, timeout=read_seconds)
         lines = data.decode("utf-8", errors="replace").splitlines()
-        if lines[0][0] == 'U':
+        if len(lines) > 0 and len(lines[0]) > 0 and lines[0][0] == 'U':
             result = []
             if as_json:
                 for ev in parse_lines_to_events(lines):
