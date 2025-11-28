@@ -135,6 +135,21 @@ def get_status(xdrid):
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
 
+@app.route(f'/api/state/<int(min=1, max={MAX_NUMBER_OF_CARDS}):xdrid>', methods=['GET', 'OPTIONS'])
+def get_state(xdrid):
+    if request.method == 'OPTIONS':
+        return make_response()
+
+    try:
+        xdr_ctx = XDRContext.get_context(xdrid)
+        read_seconds = float(request.args.get('read_seconds', 1.0))
+        as_json = False
+        result = xdr_state(xdr_ctx, read_seconds, as_json)
+
+        return jsonify(result)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+
 @app.route('/api/<int:xdrid>/tune/<int:khz>', methods=['POST', 'OPTIONS'])
 @app.route('/api/tune/<int:khz>', methods=['POST', 'OPTIONS'], defaults={'xdrid': 1})
 def tune(xdrid, khz):
