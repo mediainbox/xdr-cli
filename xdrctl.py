@@ -12,7 +12,7 @@ import click
 from xdr_core import xdr_status, xdr_listen, xdr_raw, xdr_scan, xdr_init_full
 from xdr_core import xdr_tune, xdr_bandwidth, xdr_filter, xdr_mode, xdr_volume, xdr_deemp
 from xdr_core import xdr_agc, xdr_antenna, xdr_gain, xdr_daa, xdr_squelch, xdr_rotator
-from xdr_core import xdr_interval, xdr_init_cmd, xdr_shutdown
+from xdr_core import xdr_interval, xdr_init_cmd, xdr_shutdown, xdr_state
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 7373  # xdrd default
@@ -40,7 +40,7 @@ def cli(ctx, host, port, password, password_file):
 # -----------------------------
 # High-level commands
 # -----------------------------
-@cli.command(help="Show current state (reads the dump after AUTH).")
+@cli.command(help="Show current status")
 @click.option("--read-seconds", default=1.0, show_default=True, type=float, help="How long to read after AUTH.")
 @click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON.")
 @click.pass_context
@@ -48,6 +48,13 @@ def status(ctx, read_seconds, as_json):
     status = xdr_status(ctx, read_seconds, as_json)
     print(status)
 
+@cli.command(help="Show current state (reads the dump after AUTH).")
+@click.option("--read-seconds", default=1.0, show_default=True, type=float, help="How long to read after AUTH.")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON.")
+@click.pass_context
+def state(ctx, read_seconds, as_json):
+    state = xdr_state(ctx, read_seconds, as_json)
+    print(state)
 
 @cli.command(help="Listen and decode events (Ctrl+C to exit).")
 @click.option("--json", "as_json", is_flag=True, default=False, help="One JSON object per event.")
@@ -72,7 +79,7 @@ def raw(ctx, text, read_seconds, as_json):
 def scan(ctx, read_seconds, as_json):
     result = xdr_scan(ctx, read_seconds, as_json)
     print(result)
-    
+
 
 @cli.command(help="Tune in kHz. Example: 101700 means 101.7 MHz.")
 @click.argument("khz", type=int)
@@ -223,4 +230,3 @@ def init_full(ctx, mode, volume, deemp, agc, if_filter, bandwidth, antenna, gain
 
 if __name__ == "__main__":
     cli()
-
