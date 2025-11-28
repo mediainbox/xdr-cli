@@ -40,13 +40,15 @@ DEFAULT_XDRD_CONFIGS = [
     {"host": None, "port": 7373, "name": "XDR-4"}   # Disabled by default
 ]
 
+MAX_NUMBER_OF_CARDS = 4
+
 # Get configuration from environment variables
 HOST = os.environ.get("HOST", DEFAULT_HOST)
 PORT = int(os.environ.get("PORT", DEFAULT_PORT))
 
 # Load XDRD configurations from environment
 XDRD_CONFIGS = []
-for i in range(4):
+for i in range(MAX_NUMBER_OF_CARDS):
     idx = i + 1  # 1-based index for environment variables
     host = os.environ.get(f"XDRD_{idx}_HOST", DEFAULT_XDRD_CONFIGS[i]["host"] if i < len(DEFAULT_XDRD_CONFIGS) else None)
     port = int(os.environ.get(f"XDRD_{idx}_PORT", DEFAULT_XDRD_CONFIGS[i]["port"] if i < len(DEFAULT_XDRD_CONFIGS) else 7373))
