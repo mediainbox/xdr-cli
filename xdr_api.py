@@ -18,7 +18,7 @@ from xdr_core import (
     xdr_status, xdr_listen, xdr_raw, xdr_scan, xdr_init_full,
     xdr_tune, xdr_bandwidth, xdr_filter, xdr_mode, xdr_volume, xdr_deemp,
     xdr_agc, xdr_antenna, xdr_gain, xdr_daa, xdr_squelch, xdr_rotator,
-    xdr_interval, xdr_init_cmd, xdr_shutdown
+    xdr_interval, xdr_init_cmd, xdr_shutdown, xdr_state
 )
 
 app = Flask(__name__)
