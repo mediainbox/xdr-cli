@@ -120,7 +120,7 @@ def list_xdrs():
         'count': len(XDRContext.list_contexts())
     })
 
-@app.route('/api/status/<int:xdrid>', methods=['GET', 'OPTIONS'], defaults={'xdrid': 1})
+@app.route(f'/api/status/<int(min=1, max={MAX_NUMBER_OF_CARDS}):xdrid>', methods=['GET', 'OPTIONS'])
 def get_status(xdrid):
     if request.method == 'OPTIONS':
         return make_response()
@@ -320,8 +320,7 @@ def shutdown(xdrid):
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
 
-@app.route('/api/<int:xdrid>/scan', methods=['GET'])
-@app.route('/api/scan', methods=['GET'], defaults={'xdrid': 1})
+@app.route('/api/scan/<int(min=1, max={MAX_NUMBER_OF_CARDS}):xdrid>', methods=['GET', 'OPTIONS'])
 def scan(xdrid):
     if request.method == 'OPTIONS':
         return make_response()
