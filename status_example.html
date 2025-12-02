@@ -13,7 +13,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding-top: 30px;
+            padding-top: 20px;
         }
 
         .container {
@@ -21,101 +21,314 @@
             max-width: 1200px;
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            padding: 12px;
+            gap: 15px;
+            padding: 15px;
         }
 
         .status-card {
             background-color: #ffffff;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 12px 15px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s;
-            height: 180px;
-            display: flex;
-            flex-direction: column;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px 18px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            height: auto;
+            min-height: 200px;
         }
 
         .status-card:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
         }
 
         .status-card h2 {
-            margin: 0 0 8px 0;
-            color: #333;
-            font-size: 1.1em;
+            margin: 0 0 12px 0;
+            color: #2c3e50;
+            font-size: 1.2em;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
         }
 
-        .status-card p {
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px 10px;
+            font-size: 0.9em;
+        }
+
+        .status-item {
             font-size: 0.9em;
             color: #555;
             margin: 4px 0;
-            line-height: 1.4;
         }
 
-        .status-card .value {
+        .status-label {
+            display: block;
+            font-size: 0.8em;
+            color: #7f8c8d;
+            margin-bottom: 2px;
+        }
+
+        .status-value {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.05em;
+        }
+
+        .frequency {
+            color: #2980b9;
             font-weight: bold;
-            color: #007bff;
         }
 
-        .status-card .level {
-            font-size: 18px;
-            color: #007bff;
+        .volume-level {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .squelch {
+            color: #e74c3c;
             font-weight: bold;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 40px;
-            color: #444;
+            margin-bottom: 20px;
+            color: #2c3e50;
         }
 
         .loading {
-            font-size: 24px;
-            color: #888;
+            font-size: 18px;
+            color: #7f8c8d;
+            text-align: center;
+            padding: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="status-card" id="status-1">
-            <h2>Status 1</h2>
-            <p><strong>Signal ACI:</strong> <span class="value" id="signal-aci-1">Loading...</span></p>
-            <p><strong>Signal CCI:</strong> <span class="value" id="signal-cci-1">Loading...</span></p>
-            <p><strong>Signal Level:</strong> <span class="level" id="signal-level-1">Loading...</span></p>
-            <p><strong>Signal Stereo:</strong> <span class="value" id="signal-stereo-1">Loading...</span></p>
+            <h2>Receiver 1</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">Frequency</span>
+                    <span class="status-value frequency" id="freq-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Volume</span>
+                    <span class="status-value volume-level" id="volume-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Squelch</span>
+                    <span class="status-value squelch" id="squelch-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Bandwidth</span>
+                    <span class="status-value" id="bandwidth-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">AGC</span>
+                    <span class="status-value" id="agc-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Antenna</span>
+                    <span class="status-value" id="antenna-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">DAA</span>
+                    <span class="status-value" id="daa-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Deemphasis</span>
+                    <span class="status-value" id="deemphasis-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Gain</span>
+                    <span class="status-value" id="gain-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Int. Detector</span>
+                    <span class="status-value" id="interval-detector-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Int. Sampling</span>
+                    <span class="status-value" id="interval-sampling-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Rotator</span>
+                    <span class="status-value" id="rotator-1">Loading...</span>
+                </div>
+            </div>
         </div>
+        
         <div class="status-card" id="status-2">
-            <h2>Status 2</h2>
-            <p><strong>Signal ACI:</strong> <span class="value" id="signal-aci-2">Loading...</span></p>
-            <p><strong>Signal CCI:</strong> <span class="value" id="signal-cci-2">Loading...</span></p>
-            <p><strong>Signal Level:</strong> <span class="level" id="signal-level-2">Loading...</span></p>
-            <p><strong>Signal Stereo:</strong> <span class="value" id="signal-stereo-2">Loading...</span></p>
+            <h2>Receiver 2</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">Frequency</span>
+                    <span class="status-value frequency" id="freq-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Volume</span>
+                    <span class="status-value volume-level" id="volume-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Squelch</span>
+                    <span class="status-value squelch" id="squelch-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Bandwidth</span>
+                    <span class="status-value" id="bandwidth-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">AGC</span>
+                    <span class="status-value" id="agc-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Antenna</span>
+                    <span class="status-value" id="antenna-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">DAA</span>
+                    <span class="status-value" id="daa-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Deemphasis</span>
+                    <span class="status-value" id="deemphasis-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Gain</span>
+                    <span class="status-value" id="gain-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Int. Detector</span>
+                    <span class="status-value" id="interval-detector-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Int. Sampling</span>
+                    <span class="status-value" id="interval-sampling-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Rotator</span>
+                    <span class="status-value" id="rotator-2">Loading...</span>
+                </div>
+            </div>
         </div>
+        
         <div class="status-card" id="status-3">
-            <h2>Status 3</h2>
-            <p><strong>Signal ACI:</strong> <span class="value" id="signal-aci-3">Loading...</span></p>
-            <p><strong>Signal CCI:</strong> <span class="value" id="signal-cci-3">Loading...</span></p>
-            <p><strong>Signal Level:</strong> <span class="level" id="signal-level-3">Loading...</span></p>
-            <p><strong>Signal Stereo:</strong> <span class="value" id="signal-stereo-3">Loading...</span></p>
+            <h2>Receiver 3</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">Frequency</span>
+                    <span class="status-value frequency" id="freq-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Volume</span>
+                    <span class="status-value volume-level" id="volume-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Squelch</span>
+                    <span class="status-value squelch" id="squelch-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Bandwidth</span>
+                    <span class="status-value" id="bandwidth-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">AGC</span>
+                    <span class="status-value" id="agc-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Antenna</span>
+                    <span class="status-value" id="antenna-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">DAA</span>
+                    <span class="status-value" id="daa-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Deemphasis</span>
+                    <span class="status-value" id="deemphasis-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Gain</span>
+                    <span class="status-value" id="gain-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Int. Detector</span>
+                    <span class="status-value" id="interval-detector-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Int. Sampling</span>
+                    <span class="status-value" id="interval-sampling-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Rotator</span>
+                    <span class="status-value" id="rotator-3">Loading...</span>
+                </div>
+            </div>
         </div>
+        
         <div class="status-card" id="status-4">
-            <h2>Status 4</h2>
-            <p><strong>Signal ACI:</strong> <span class="value" id="signal-aci-4">Loading...</span></p>
-            <p><strong>Signal CCI:</strong> <span class="value" id="signal-cci-4">Loading...</span></p>
-            <p><strong>Signal Level:</strong> <span class="level" id="signal-level-4">Loading...</span></p>
-            <p><strong>Signal Stereo:</strong> <span class="value" id="signal-stereo-4">Loading...</span></p>
+            <h2>Receiver 4</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">Frequency</span>
+                    <span class="status-value frequency" id="freq-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Volume</span>
+                    <span class="status-value volume-level" id="volume-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Squelch</span>
+                    <span class="status-value squelch" id="squelch-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Bandwidth</span>
+                    <span class="status-value" id="bandwidth-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">AGC</span>
+                    <span class="status-value" id="agc-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Antenna</span>
+                    <span class="status-value" id="antenna-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">DAA</span>
+                    <span class="status-value" id="daa-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Deemphasis</span>
+                    <span class="status-value" id="deemphasis-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Gain</span>
+                    <span class="status-value" id="gain-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Int. Detector</span>
+                    <span class="status-value" id="interval-detector-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Int. Sampling</span>
+                    <span class="status-value" id="interval-sampling-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Rotator</span>
+                    <span class="status-value" id="rotator-4">Loading...</span>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         const urls = [
-            'http://127.0.0.1:5000/api/status/1',
-            'http://127.0.0.1:5000/api/status/2',
-            'http://127.0.0.1:5000/api/status/3',
-            'http://127.0.0.1:5000/api/status/4'
+            'http://127.0.0.1:5000/api/state/1',
+            'http://127.0.0.1:5000/api/state/2',
+            'http://127.0.0.1:5000/api/state/3',
+            'http://127.0.0.1:5000/api/state/4'
         ];
 
         function sleep(ms) {
@@ -126,17 +339,73 @@
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById(`signal-aci-${statusId}`).textContent = data.signal_aci;
-                    document.getElementById(`signal-cci-${statusId}`).textContent = data.signal_cci;
-                    document.getElementById(`signal-level-${statusId}`).textContent = data.signal_level.toFixed(2) + ' dBm';
-                    document.getElementById(`signal-stereo-${statusId}`).textContent = data.signal_stereo.charAt(0).toUpperCase() + data.signal_stereo.slice(1);
+                    // Update frequency with MHz
+                    document.getElementById(`freq-${statusId}`).textContent = `${data.freq_mhz} MHz`;
+                    
+                    // Update volume with percentage
+                    document.getElementById(`volume-${statusId}`).textContent = `${data.volume}%`;
+                    
+                    // Update squelch (on/off)
+                    const squelchText = data.squelch === 1 ? 'ON' : 'OFF';
+                    document.getElementById(`squelch-${statusId}`).textContent = squelchText;
+                    
+                    // Update bandwidth (convert Hz to kHz if needed)
+                    const bandwidth = data.bandwidth >= 1000 
+                        ? `${(data.bandwidth / 1000).toFixed(1)} kHz` 
+                        : `${data.bandwidth} Hz`;
+                    document.getElementById(`bandwidth-${statusId}`).textContent = bandwidth;
+                    
+                    // Update AGC (on/off)
+                    const agcText = data.agc === 1 ? 'ON' : 'OFF';
+                    document.getElementById(`agc-${statusId}`).textContent = agcText;
+                    
+                    // Update antenna
+                    document.getElementById(`antenna-${statusId}`).textContent = data.antenna;
+                    
+                    // Update DAA (on/off)
+                    const daaText = data.daa === 1 ? 'ON' : 'OFF';
+                    document.getElementById(`daa-${statusId}`).textContent = daaText;
+                    
+                    // Update deemphasis (on/off)
+                    const deemphasisText = data.deemphasis === 1 ? 'ON' : 'OFF';
+                    document.getElementById(`deemphasis-${statusId}`).textContent = deemphasisText;
+                    
+                    // Update gain
+                    document.getElementById(`gain-${statusId}`).textContent = data.gain;
+                    
+                    // Update interval detector
+                    document.getElementById(`interval-detector-${statusId}`).textContent = data.interval_detector;
+                    
+                    // Update interval sampling
+                    document.getElementById(`interval-sampling-${statusId}`).textContent = data.interval_sampling;
+                    
+                    // Update rotator (on/off)
+                    const rotatorText = data.rotator === 1 ? 'ON' : 'OFF';
+                    document.getElementById(`rotator-${statusId}`).textContent = rotatorText;
+                    
+                    // Update card background based on squelch status
+                    const card = document.getElementById(`status-${statusId}`);
+                    if (data.squelch === 0) {
+                        card.style.borderLeft = '4px solid #e74c3c';
+                    } else {
+                        card.style.borderLeft = '4px solid #2ecc71';
+                    }
                 })
                 .catch(error => {
-                    console.error(`Error fetching data for Status ${statusId}:`, error);
-                    document.getElementById(`signal-aci-${statusId}`).textContent = 'Error';
-                    document.getElementById(`signal-cci-${statusId}`).textContent = 'Error';
-                    document.getElementById(`signal-level-${statusId}`).textContent = 'Error';
-                    document.getElementById(`signal-stereo-${statusId}`).textContent = 'Error';
+                    console.error(`Error fetching data for Receiver ${statusId}:`, error);
+                    const errorText = 'Error';
+                    const fields = [
+                        'freq', 'volume', 'squelch', 'bandwidth', 'agc', 'antenna',
+                        'daa', 'deemphasis', 'gain', 'interval-detector', 'interval-sampling', 'rotator'
+                    ];
+                    
+                    fields.forEach(field => {
+                        document.getElementById(`${field}-${statusId}`).textContent = errorText;
+                    });
+                    
+                    // Set error state styling
+                    const card = document.getElementById(`status-${statusId}`);
+                    card.style.borderLeft = '4px solid #f39c12';
                 });
         }
 
