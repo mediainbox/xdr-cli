@@ -442,6 +442,7 @@ def xdr_state(ctx, read_seconds, as_json):
     s, banner = connect_and_auth(ctx.obj["host"], ctx.obj["port"], ctx.obj["password"])
     recieved_state_info = False
     while True:
+        send_line(s, "s\n")
         data = drain_read(s, timeout=read_seconds)
         lines = data.decode("utf-8", errors="replace").splitlines()
         result = []
@@ -451,13 +452,11 @@ def xdr_state(ctx, read_seconds, as_json):
                     result.append(json.dumps(ev, ensure_ascii=False))
                     recieved_state_info = True
         else:
-            if len(lines) > 0 and len(lines[0]) > 0 and lines[0][0] == 'Y':
+            if len(lines) > 0 and len(lines[0]) > 0 and lines[0][0] == 'M':
                 result = parse_state_lines(lines)
                 recieved_state_info = True
         if recieved_state_info == True:
             break
-        # Reconect again since the state info is sent when a new client connects
-        s, banner = connect_and_auth(ctx.obj["host"], ctx.obj["port"], ctx.obj["password"])
 
     s.close()
     return result
