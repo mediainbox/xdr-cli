@@ -279,7 +279,13 @@ def parse_state_lines(lines):
             continue
         if ev.get("type") == "state":
             key = ev.get("key")
-            if key == "freq_khz":
+            if key == "deemphasis":
+                state["deemphasis"] = calculate_deemphasis(ev["value"])
+            elif key == "bandwidth":
+                state["bandwidth"] = calculate_bandwidth(ev["value"])
+            elif key == "daa":
+                state["daa"] = calculate_daa(ev["value"])
+            elif key == "freq_khz":
                 state["freq_khz"] = ev["value"]
                 state["freq_mhz"] = ev.get("freq_mhz")
             elif key == "interval":
