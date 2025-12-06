@@ -306,6 +306,17 @@ def parse_state_lines(lines):
             state["ready"] = True
     return state
 
+def calculate_deemphasis(value):
+    return_value = ''
+    if value == 0:
+        return_value = "50 µs"
+    elif value == 1:
+        return_value = "75 µs"
+    else:
+        return_value = value
+
+    return return_value
+
 def print_table(d):
     if not d:
         print("(no data)")
