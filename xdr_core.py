@@ -334,6 +334,19 @@ def calculate_bandwidth(value):
 
     return return_value
 
+def calculate_daa(value):
+    return_value = ''
+    if value == 0:
+        return_value = "normal"
+    elif value == 1:
+        return_value = "dead air"
+    elif value == 2:
+        return_value = "error or unsupported mode"
+    else:
+        return_value = value
+
+    return return_value
+
 def print_table(d):
     if not d:
         print("(no data)")
