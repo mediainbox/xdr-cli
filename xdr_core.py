@@ -317,6 +317,23 @@ def calculate_deemphasis(value):
 
     return return_value
 
+# bandwidth_code | bandwidth_label |Aprox. bandwidth
+# 0              | wide            |~180 kHz – 200 kHz
+# 1              | medium          |~150 kHz
+# 2              | narrow          |~110 kHz – 120 kHz
+def calculate_bandwidth(value):
+    return_value = ''
+    if value == 0:
+        return_value = "wide"
+    elif value == 1:
+        return_value = "medium"
+    elif value == 2:
+        return_value = "narrow"
+    else:
+        return_value = value
+
+    return return_value
+
 def print_table(d):
     if not d:
         print("(no data)")
