@@ -486,18 +486,18 @@ def xdr_scan(ctx, read_seconds, as_json):
     return result
 
 def xdr_state(ctx, read_seconds, as_json):
-    s, banner = connect_and_auth(ctx.obj["host"], ctx.obj["port"], ctx.obj["password"])
+    s, _ = connect_and_auth(ctx.obj["host"], ctx.obj["port"], ctx.obj["password"])
     recieved_state_info = False
+    send_line(s, "s\n")
     while True:
-        send_line(s, "s\n")
         data = drain_read(s, timeout=read_seconds)
         lines = data.decode("utf-8", errors="replace").splitlines()
         result = []
         if as_json:
-            for ev in parse_lines_to_events(lines):
-                if ev['type'] == 'state':
-                    result.append(json.dumps(ev, ensure_ascii=False))
-                    recieved_state_info = True
+            p_lines = parse_state_lines(lines)
+            if 'volume' in p_lines:
+                result = json.dumps(p_lines, ensure_ascii=False)
+                recieved_state_info = True
         else:
             if len(lines) > 0 and len(lines[0]) > 0 and lines[0][0] == 'M':
                 result = parse_state_lines(lines)
