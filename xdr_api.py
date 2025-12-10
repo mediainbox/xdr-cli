@@ -143,10 +143,10 @@ def get_state(xdrid):
     try:
         xdr_ctx = XDRContext.get_context(xdrid)
         read_seconds = float(request.args.get('read_seconds', 1.0))
-        as_json = False
+        as_json = True
         result = xdr_state(xdr_ctx, read_seconds, as_json)
 
-        return jsonify(result)
+        return result
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
 
