@@ -159,7 +159,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="status-card" id="status-2">
             <h2>Receiver 2</h2>
             <div class="status-grid">
@@ -213,7 +213,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="status-card" id="status-3">
             <h2>Receiver 3</h2>
             <div class="status-grid">
@@ -267,7 +267,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="status-card" id="status-4">
             <h2>Receiver 4</h2>
             <div class="status-grid">
@@ -335,60 +335,101 @@
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
+        // Helper function to safely update a field if the element exists
+        function updateField(elementId, value) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = value !== undefined ? value : 'N/A';
+                return true;
+            }
+            return false;
+        }
+
         function fetchData(url, statusId) {
             fetch(url)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.json();
+                })
                 .then(data => {
-                    // Update frequency with MHz
-                    document.getElementById(`freq-${statusId}`).textContent = `${data.freq_mhz} MHz`;
-                    
+                    if (!data) throw new Error('No data received');
+
+                    // Update frequency with kHz (format: '96950,10')
+                    if (data.freq_khz) {
+                        try {
+                            const freqParts = String(data.freq_khz).split(',');
+                            const freqValue = parseInt(freqParts[0]) || 0;
+document.getElementById(`freq-${statusId}`).textContent = `${(freqValue / 1000).toFixed(2)} MHz`;
+                        } catch (e) {
+                            console.error('Error parsing frequency:', e);
+                            updateField('freq', 'N/A');
+                        }
+                    }
+
                     // Update volume with percentage
-                    document.getElementById(`volume-${statusId}`).textContent = `${data.volume}%`;
-                    
-                    // Update squelch (on/off)
-                    const squelchText = data.squelch === 1 ? 'ON' : 'OFF';
-                    document.getElementById(`squelch-${statusId}`).textContent = squelchText;
-                    
-                    // Update bandwidth (convert Hz to kHz if needed)
-                    const bandwidth = data.bandwidth >= 1000 
-                        ? `${(data.bandwidth / 1000).toFixed(1)} kHz` 
-                        : `${data.bandwidth} Hz`;
-                    document.getElementById(`bandwidth-${statusId}`).textContent = bandwidth;
-                    
-                    // Update AGC (on/off)
-                    const agcText = data.agc === 1 ? 'ON' : 'OFF';
-                    document.getElementById(`agc-${statusId}`).textContent = agcText;
-                    
-                    // Update antenna
-                    document.getElementById(`antenna-${statusId}`).textContent = data.antenna;
-                    
-                    // Update DAA (on/off)
-                    const daaText = data.daa === 1 ? 'ON' : 'OFF';
-                    document.getElementById(`daa-${statusId}`).textContent = daaText;
-                    
-                    // Update deemphasis (on/off)
-                    const deemphasisText = data.deemphasis === 1 ? 'ON' : 'OFF';
-                    document.getElementById(`deemphasis-${statusId}`).textContent = deemphasisText;
-                    
-                    // Update gain
-                    document.getElementById(`gain-${statusId}`).textContent = data.gain;
-                    
-                    // Update interval detector
-                    document.getElementById(`interval-detector-${statusId}`).textContent = data.interval_detector;
-                    
-                    // Update interval sampling
-                    document.getElementById(`interval-sampling-${statusId}`).textContent = data.interval_sampling;
-                    
-                    // Update rotator (on/off)
-                    const rotatorText = data.rotator === 1 ? 'ON' : 'OFF';
-                    document.getElementById(`rotator-${statusId}`).textContent = rotatorText;
-                    
-                    // Update card background based on squelch status
+                    const volume = data.volume !== undefined ? `${data.volume}%` : 'N/A';
+                    document.getElementById(`volume-${statusId}`).textContent = volume;
+
+                    // Update squelch display (0 = OFF, 1-100 = threshold value)
+                    if (data.squelch !== undefined) {
+                        const squelchText = data.squelch === 0 ? 'OFF' : data.squelch.toString();
+                        document.getElementById(`squelch-${statusId}`).textContent = squelchText;
+                    }
+
+                    // Update bandwidth in kHz
+                    if (data.bandwidth !== undefined) {
+                        const bandwidthKHz = (parseInt(data.bandwidth) || 0) / 1000;
+                        document.getElementById(`bandwidth-${statusId}`).textContent = `${bandwidthKHz} kHz`;
+                    }
+
+                    // Update AGC (0=OFF, 1=FAST, 2=MED, 3=SLOW)
+                    const agcModes = ['OFF', 'FAST', 'MED', 'SLOW'];
+                    const agcValue = data.agc !== undefined ? (agcModes[data.agc] || data.agc) : 'N/A';
+                    document.getElementById(`agc-${statusId}`).textContent = agcValue;
+
+                    // Update antenna (0=Auto, 1=Ant1, 2=Ant2)
+                    const antennas = ['Auto', 'Ant1', 'Ant2'];
+                    const antennaValue = data.antenna !== undefined ? (antennas[data.antenna] || data.antenna) : 'N/A';
+                    document.getElementById(`antenna-${statusId}`).textContent = antennaValue;
+
+                    // Update DAA (dynamic attenuation adjustment)
+                    const daaValue = data.daa ? 
+                        data.daa.charAt(0).toUpperCase() + data.daa.slice(1) : 'N/A';
+                    document.getElementById(`daa-${statusId}`).textContent = daaValue;
+
+                    // Update deemphasis
+                    document.getElementById(`deemphasis-${statusId}`).textContent = data.deemphasis || 'N/A';
+
+                    // Hide fields that don't exist in the API response
+                    ['gain', 'interval-detector', 'interval-sampling', 'rotator'].forEach(field => {
+                        const element = document.getElementById(`${field}-${statusId}`);
+                        if (element) {
+                            element.parentElement.style.display = 'none';
+                        }
+                    });
+
+                    // Update card styling
                     const card = document.getElementById(`status-${statusId}`);
-                    if (data.squelch === 0) {
-                        card.style.borderLeft = '4px solid #e74c3c';
-                    } else {
-                        card.style.borderLeft = '4px solid #2ecc71';
+                    if (card) {
+                        // Default to green border
+                        let borderColor = '#2ecc71';
+                        
+                        // Update based on squelch if available
+                        if (data.squelch !== undefined) {
+                            // New format: 0 = off, 1-100 = on with threshold
+                            if (data.squelch === 0) {
+                                borderColor = '#e74c3c'; // Red for squelch off
+                            }
+                        }
+                        
+                        // Update based on signal level if available
+                        if (data.signal_level !== undefined) {
+                            const signalLevel = parseFloat(data.signal_level) || 0;
+                            borderColor = signalLevel > 10 ? '#27ae60' : 
+                                         signalLevel > 5 ? '#f39c12' : '#e74c3c';
+                        }
+                        
+                        card.style.borderLeft = `4px solid ${borderColor}`;
                     }
                 })
                 .catch(error => {
@@ -398,25 +439,38 @@
                         'freq', 'volume', 'squelch', 'bandwidth', 'agc', 'antenna',
                         'daa', 'deemphasis', 'gain', 'interval-detector', 'interval-sampling', 'rotator'
                     ];
-                    
+
                     fields.forEach(field => {
-                        document.getElementById(`${field}-${statusId}`).textContent = errorText;
+                        const element = document.getElementById(`${field}-${statusId}`);
+                        if (element) {
+                            element.textContent = errorText;
+                        }
                     });
-                    
+
                     // Set error state styling
                     const card = document.getElementById(`status-${statusId}`);
-                    card.style.borderLeft = '4px solid #f39c12';
+                    if (card) {
+                        card.style.borderLeft = '4px solid #f39c12';
+                    }
                 });
         }
 
         // Load data for each status with delay
         async function loadDataWithDelay() {
+            // First load immediately
             for (let i = 0; i < urls.length; i++) {
-                await sleep(3000); // 3 second delay
                 fetchData(urls[i], i + 1);
+                await sleep(1000); // 1 second delay between initial loads
             }
+            
+            // Then refresh every 10 seconds
+            setInterval(() => {
+                for (let i = 0; i < urls.length; i++) {
+                    fetchData(urls[i], i + 1);
+                }
+            }, 10000);
         }
-        
+
         // Start loading data
         loadDataWithDelay();
     </script>
