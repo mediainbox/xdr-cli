@@ -40,7 +40,7 @@ DEFAULT_XDRD_CONFIGS = [
     {"host": None, "port": 7373, "name": "XDR-4"}   # Disabled by default
 ]
 
-MAX_NUMBER_OF_CARDS = 4
+MAX_XDR = 4
 
 # Get configuration from environment variables
 HOST = os.environ.get("HOST", DEFAULT_HOST)
@@ -48,7 +48,7 @@ PORT = int(os.environ.get("PORT", DEFAULT_PORT))
 
 # Load XDRD configurations from environment
 XDRD_CONFIGS = []
-for i in range(MAX_NUMBER_OF_CARDS):
+for i in range(MAX_XDR):
     idx = i + 1  # 1-based index for environment variables
     host = os.environ.get(f"XDRD_{idx}_HOST", DEFAULT_XDRD_CONFIGS[i]["host"] if i < len(DEFAULT_XDRD_CONFIGS) else None)
     port = int(os.environ.get(f"XDRD_{idx}_PORT", DEFAULT_XDRD_CONFIGS[i]["port"] if i < len(DEFAULT_XDRD_CONFIGS) else 7373))
@@ -120,7 +120,7 @@ def list_xdrs():
         'count': len(XDRContext.list_contexts())
     })
 
-@app.route(f'/api/status/<int(min=1, max={MAX_NUMBER_OF_CARDS}):xdrid>', methods=['GET', 'OPTIONS'])
+@app.route(f'/api/status/<int(min=1, max={MAX_XDR}):xdrid>', methods=['GET', 'OPTIONS'])
 def get_status(xdrid):
     if request.method == 'OPTIONS':
         return make_response()
@@ -135,7 +135,7 @@ def get_status(xdrid):
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
 
-@app.route(f'/api/state/<int(min=1, max={MAX_NUMBER_OF_CARDS}):xdrid>', methods=['GET', 'OPTIONS'])
+@app.route(f'/api/state/<int(min=1, max={MAX_XDR}):xdrid>', methods=['GET', 'OPTIONS'])
 def get_state(xdrid):
     if request.method == 'OPTIONS':
         return make_response()
@@ -335,7 +335,7 @@ def shutdown(xdrid):
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
 
-@app.route('/api/scan/<int(min=1, max={MAX_NUMBER_OF_CARDS}):xdrid>', methods=['GET', 'OPTIONS'])
+@app.route('/api/scan/<int(min=1, max={MAX_XDR}):xdrid>', methods=['GET', 'OPTIONS'])
 def scan(xdrid):
     if request.method == 'OPTIONS':
         return make_response()
