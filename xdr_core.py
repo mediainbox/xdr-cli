@@ -7,6 +7,7 @@ import hashlib
 import json
 import re
 import string
+import time
 import click
 
 DEFAULT_HOST = "127.0.0.1"
@@ -285,6 +286,8 @@ def parse_state_lines(lines):
                 state["bandwidth"] = calculate_bandwidth(ev["value"])
             elif key == "daa":
                 state["daa"] = calculate_daa(ev["value"])
+            elif key == "squelch":
+                state["squelch"] = calculate_squelch(ev["value"])
             elif key == "freq_khz":
                 state["freq_khz"] = ev["value"]
                 state["freq_mhz"] = ev.get("freq_mhz")
