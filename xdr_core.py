@@ -340,6 +340,19 @@ def calculate_bandwidth(value):
 
     return return_value
 
+
+def calculate_squelch(value):
+    if value == 0:
+        return '0'
+    elif isinstance(value, str) and ',' in value:
+        # Validate the format is '1,{number}'
+        parts = value.split(',')
+        if len(parts) == 2 and parts[0] == '1' and parts[1].isdigit():
+            return parts[1]
+    # Return default disabled if value is invalid
+    return '0'
+
+
 def calculate_daa(value):
     return_value = ''
     if value == 0:
@@ -374,7 +387,7 @@ def xdr_status(ctx, read_seconds, as_json):
         return_value = json.dumps(st, ensure_ascii=False, indent=2)
     else:
         return_value = st
-        
+
     return return_value
 
 def xdr_listen(ctx, as_json):
@@ -481,7 +494,7 @@ def xdr_scan(ctx, read_seconds, as_json):
             else:
                 result = lines
             break
-                
+
     s.close()
     return result
 
@@ -508,7 +521,7 @@ def xdr_state(ctx, read_seconds, as_json):
     s.close()
     return result
 
-    
+
 # -----------------------------
 # Command wrappers (with --json on every cmd)
 # -----------------------------
