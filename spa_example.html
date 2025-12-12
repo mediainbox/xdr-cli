@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mediainbox XDR Status & Spectrum</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Spectrum Styles */
+        .spectrum-container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            position: relative;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 400px;  /* Fixed height */
+            margin: 20px 0;
+        }
+
+        #spectrumChart {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button, select, input {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #f0f0f0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        /* Status Cards Styles */
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            padding: 15px;
+        }
+
+        .status-card {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px 18px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            height: auto;
+            min-height: 200px;
+        }
+
+        .status-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-card h2 {
+            margin: 0 0 12px 0;
+            color: #2c3e50;
+            font-size: 1.2em;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .status-item {
+            margin-bottom: 10px;
+        }
+
+        .status-label {
+            display: block;
+            font-size: 0.85em;
+            color: #7f8c8d;
+            margin-bottom: 3px;
+        }
+
+        .status-value {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.05em;
+        }
+
+        .frequency {
+            color: #2980b9;
+            font-weight: bold;
+        }
+
+        .volume-level {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .squelch {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .status-ok {
+            color: #27ae60;
+        }
+
+        .status-warning {
+            color: #f39c12;
+        }
+
+        .status-error {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <!-- Spectrum Section -->
+    <div class="spectrum-container">
+        <h1>Spectrum Graph</h1>
+        
+        <div class="controls">
+            <button id="refreshBtn">Refresh</button>
+            <select id="bandSelect">
+                <option value="fm">FM Band (87.5-108 MHz)</option>
+                <option value="airband">Airband (118-137 MHz)</option>
+                <option value="custom">Custom Range</option>
+            </select>
+            <div id="customRange" style="display: none;">
+                <input type="number" id="minFreq" step="0.1" min="0" placeholder="Min (MHz)">
+                <span>to</span>
+                <input type="number" id="maxFreq" step="0.1" min="0" placeholder="Max (MHz)">
+                <button id="applyRange">Apply</button>
+            </div>
+            <div>
+                <label><input type="checkbox" id="autoRefresh" checked> Auto-refresh (5s)</label>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="spectrumChart"></canvas>
+            <div id="loading" class="loading" style="display: none;">Loading spectrum data...</div>
+        </div>
+    </div>
+
+    <!-- Status Cards Section -->
+    <div class="container">
+        <div class="status-card" id="status-1">
+            <h2>Receiver 1</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">Frequency</span>
+                    <span class="status-value frequency" id="freq-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Volume</span>
+                    <span class="status-value volume-level" id="volume-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Squelch</span>
+                    <span class="status-value squelch" id="squelch-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Bandwidth</span>
+                    <span class="status-value" id="bandwidth-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">AGC</span>
+                    <span class="status-value" id="agc-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Antenna</span>
+                    <span class="status-value" id="antenna-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">DAA</span>
+                    <span class="status-value" id="daa-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Deemphasis</span>
+                    <span class="status-value" id="deemphasis-1">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-card" id="status-2">
+            <h2>Receiver 2</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">Frequency</span>
+                    <span class="status-value frequency" id="freq-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Volume</span>
+                    <span class="status-value volume-level" id="volume-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Squelch</span>
+                    <span class="status-value squelch" id="squelch-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Bandwidth</span>
+                    <span class="status-value" id="bandwidth-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">AGC</span>
+                    <span class="status-value" id="agc-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Antenna</span>
+                    <span class="status-value" id="antenna-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">DAA</span>
+                    <span class="status-value" id="daa-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Deemphasis</span>
+                    <span class="status-value" id="deemphasis-2">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-card" id="status-3">
+            <h2>Receiver 3</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">Frequency</span>
+                    <span class="status-value frequency" id="freq-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Volume</span>
+                    <span class="status-value volume-level" id="volume-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Squelch</span>
+                    <span class="status-value squelch" id="squelch-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Bandwidth</span>
+                    <span class="status-value" id="bandwidth-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">AGC</span>
+                    <span class="status-value" id="agc-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Antenna</span>
+                    <span class="status-value" id="antenna-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">DAA</span>
+                    <span class="status-value" id="daa-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Deemphasis</span>
+                    <span class="status-value" id="deemphasis-3">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-card" id="status-4">
+            <h2>Receiver 4</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">Frequency</span>
+                    <span class="status-value frequency" id="freq-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Volume</span>
+                    <span class="status-value volume-level" id="volume-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Squelch</span>
+                    <span class="status-value squelch" id="squelch-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Bandwidth</span>
+                    <span class="status-value" id="bandwidth-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">AGC</span>
+                    <span class="status-value" id="agc-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Antenna</span>
+                    <span class="status-value" id="antenna-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">DAA</span>
+                    <span class="status-value" id="daa-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Deemphasis</span>
+                    <span class="status-value" id="deemphasis-4">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Spectrum Chart Code
+        let spectrumChart;
+        let autoRefreshInterval;
+        const refreshBtn = document.getElementById('refreshBtn');
+        const bandSelect = document.getElementById('bandSelect');
+        const customRange = document.getElementById('customRange');
+        const minFreqInput = document.getElementById('minFreq');
+        const maxFreqInput = document.getElementById('maxFreq');
+        const applyRangeBtn = document.getElementById('applyRange');
+        const autoRefreshCheckbox = document.getElementById('autoRefresh');
+        const loadingIndicator = document.getElementById('loading');
+
+        // Initialize chart with data
+        function initChart(labels, data) {
+            // Make sure we have valid data
+            if (!labels || !data || labels.length === 0 || data.length === 0) {
+                console.error('Invalid data provided to initChart');
+                loadingIndicator.textContent = 'Error: No valid data to display';
+                loadingIndicator.style.color = 'red';
+                return false;
+            }
+
+            // Get the canvas element
+            const canvas = document.getElementById('spectrumChart');
+            if (!canvas) {
+                console.error('Canvas element not found');
+                return false;
+            }
+            
+            // Hide the canvas until we're ready to render
+            canvas.style.display = 'none';
+            
+            // Set explicit canvas dimensions
+            const maxCanvasWidth = 2048;
+            const maxCanvasHeight = 2048;
+            canvas.width = Math.min(1000, maxCanvasWidth);
+            canvas.height = Math.min(400, maxCanvasHeight);
+            canvas.style.margin = '20px auto';
+            
+            // Get the 2D context
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                console.error('Could not get 2D context');
+                return false;
+            }
+            
+            // Destroy existing chart instance if it exists
+            if (window.spectrumChart) {
+                try {
+                    window.spectrumChart.destroy();
+                } catch (e) {
+                    console.warn('Error destroying previous chart:', e);
+                }
+                window.spectrumChart = null;
+            }
+            
+            try {
+                // Create the chart with the provided data
+                spectrumChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Signal Strength (dB)',
+                            data: data,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1,
+                            fill: false,
+                            pointRadius: 0,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        maintainAspectRatio: false,
+                        devicePixelRatio: 1,
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                position: 'bottom',
+                                title: { display: true, text: 'Frequency (MHz)' },
+                                min: Math.min(...labels),
+                                max: Math.max(...labels)
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Signal Strength (dB)' }
+                            }
+                        },
+                        animation: { duration: 0 },
+                        plugins: {
+                            legend: { display: true, position: 'top' },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: context => `${context.parsed.x.toFixed(2)} MHz: ${context.parsed.y.toFixed(2)} dB`
+                                }
+                            },
+                            zoom: false
+                        },
+                        layout: { padding: 10 },
+                        elements: { line: { borderWidth: 1 } }
+                    }
+                });
+                
+                // Store the chart instance in window for later reference
+                window.spectrumChart = spectrumChart;
+                
+                // Only show the canvas after the chart is fully rendered
+                setTimeout(() => {
+                    canvas.style.display = 'block';
+                    loadingIndicator.style.display = 'none';
+                }, 0);
+                
+                return true;
+                
+            } catch (e) {
+                console.error('Error creating chart:', e);
+                loadingIndicator.textContent = 'Error creating chart: ' + e.message;
+                loadingIndicator.style.color = 'red';
+                return false;
+            }
+        }
+
+        // Fetch spectrum data from API
+        async function fetchSpectrumData(minFreq = 87.5, maxFreq = 108) {
+            try {
+                loadingIndicator.style.display = 'block';
+                loadingIndicator.textContent = 'Loading spectrum data...';
+                loadingIndicator.style.color = '#666';
+                
+                // API endpoint - update this to your actual API endpoint
+                const apiUrl = `http://localhost:5000/api/scan/1`;
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                let data = await response.text();
+                
+                // Parse the custom data format: ["U86000=15.85,86100=11.75,...]
+                try {
+                    // Remove the ["U and "] from the string
+                    data = data.replace(/^\["U|"\]$/g, '');
+                    
+                    // Split into frequency=strength pairs
+                    const pairs = data.split(',');
+                    const frequencies = [];
+                    const strengths = [];
+                    
+                    // Process each pair
+                    for (const pair of pairs) {
+                        const [freq, strength] = pair.split('=');
+                        if (freq && strength) {
+                            // Convert frequency from kHz to MHz for display
+                            frequencies.push(parseFloat(freq) / 1000);
+                            strengths.push(parseFloat(strength));
+                        }
+                    }
+                    
+                    // Validate data
+                    if (frequencies.length === 0 || frequencies.length !== strengths.length) {
+                        throw new Error('Invalid data format after parsing');
+                    }
+                    
+                    // Update chart with new data
+                    updateChart(frequencies, strengths);
+                    
+                    // Hide loading indicator
+                    loadingIndicator.style.display = 'none';
+                    
+                    return { frequencies, strengths };
+                    
+                } catch (error) {
+                    console.error('Error parsing spectrum data:', error);
+                    loadingIndicator.textContent = 'Error parsing spectrum data: ' + error.message;
+                    loadingIndicator.style.color = 'red';
+                    return { frequencies: [], strengths: [] };
+                }
+                
+            } catch (error) {
+                console.error('Error fetching spectrum data:', error);
+                loadingIndicator.textContent = 'Error loading spectrum data: ' + error.message;
+                loadingIndicator.style.color = 'red';
+                
+                // If we're in an error state, try to recover on next update
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                    setTimeout(() => {
+                        startAutoRefresh(10000); // Try again after 10 seconds
+                    }, 10000);
+                }
+                
+                return { frequencies: [], strengths: [] };
+            }
+        }
+
+        // Update chart with new data
+        function updateChart(frequencies, strengths) {
+            if (!spectrumChart) {
+                initChart(frequencies, strengths);
+                return;
+            }
+            
+            // Update chart data
+            spectrumChart.data.labels = frequencies.map(f => f.toFixed(2));
+            spectrumChart.data.datasets[0].data = strengths;
+            
+            // Update chart
+            spectrumChart.update();
+        }
+
+        // Auto-refresh data
+        function startAutoRefresh(interval = 5000) {
+            stopAutoRefresh();
+            
+            autoRefreshInterval = setInterval(async () => {
+                const minFreq = parseFloat(minFreqInput.value) || 87.5;
+                const maxFreq = parseFloat(maxFreqInput.value) || 108;
+                
+                const { frequencies, strengths } = await fetchSpectrumData(minFreq, maxFreq);
+                updateChart(frequencies, strengths);
+            }, interval);
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+
+        // Event Listeners for Spectrum
+        refreshBtn.addEventListener('click', async () => {
+            const minFreq = parseFloat(minFreqInput.value) || 87.5;
+            const maxFreq = parseFloat(maxFreqInput.value) || 108;
+            
+            const { frequencies, strengths } = await fetchSpectrumData(minFreq, maxFreq);
+            updateChart(frequencies, strengths);
+        });
+
+        bandSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'custom') {
+                customRange.style.display = 'flex';
+                customRange.style.gap = '10px';
+                customRange.style.alignItems = 'center';
+            } else {
+                customRange.style.display = 'none';
+                
+                // Set default values based on band
+                let minFreq, maxFreq;
+                if (e.target.value === 'fm') {
+                    minFreq = 87.5;
+                    maxFreq = 108;
+                } else if (e.target.value === 'airband') {
+                    minFreq = 118;
+                    maxFreq = 137;
+                }
+                
+                minFreqInput.value = minFreq;
+                maxFreqInput.value = maxFreq;
+                
+                // Refresh data with new range
+                if (autoRefreshCheckbox.checked) {
+                    refreshBtn.click();
+                }
+            }
+        });
+
+        applyRangeBtn.addEventListener('click', () => {
+            if (autoRefreshCheckbox.checked) {
+                refreshBtn.click();
+            }
+        });
+
+        autoRefreshCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+        });
+
+        // Status Cards Code
+        const urls = [
+            'http://127.0.0.1:5000/api/state/1',
+            'http://127.0.0.1:5000/api/state/2',
+            'http://127.0.0.1:5000/api/state/3',
+            'http://127.0.0.1:5000/api/state/4'
+        ];
+
+        // Helper function to sleep
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Helper function to safely update a field if the element exists
+        function updateField(elementId, value) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
+        // Fetch data for a single status
+        async function fetchData(url, statusId) {
+            try {
+                console.log(`Fetching data from: ${url}`);
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log(`Received data for status ${statusId}:`, data);
+
+                // Update frequency with kHz (format: '96950,10')
+                if (data.freq_khz) {
+                    try {
+                        const freqParts = String(data.freq_khz).split(',');
+                        const freqValue = parseInt(freqParts[0]) || 0;
+                        updateField(`freq-${statusId}`, `${(freqValue / 1000).toFixed(2)} MHz`);
+                    } catch (e) {
+                        console.error('Error parsing frequency:', e);
+                        updateField(`freq-${statusId}`, 'N/A');
+                    }
+                }
+
+                // Update volume with percentage
+                const volume = data.volume !== undefined ? `${data.volume}%` : 'N/A';
+                updateField(`volume-${statusId}`, volume);
+
+                // Update squelch display (0 = OFF, 1-100 = threshold value)
+                if (data.squelch !== undefined) {
+                    const squelchText = data.squelch === 0 ? 'OFF' : data.squelch.toString();
+                    updateField(`squelch-${statusId}`, squelchText);
+                }
+
+                // Update bandwidth in kHz
+                if (data.bandwidth !== undefined) {
+                    const bandwidthKHz = (parseInt(data.bandwidth) || 0) / 1000;
+                    updateField(`bandwidth-${statusId}`, `${bandwidthKHz} kHz`);
+                }
+
+                // Update AGC (0=OFF, 1=FAST, 2=MED, 3=SLOW)
+                const agcModes = ['OFF', 'FAST', 'MED', 'SLOW'];
+                const agcValue = data.agc !== undefined ? (agcModes[data.agc] || data.agc) : 'N/A';
+                updateField(`agc-${statusId}`, agcValue);
+
+                // Update antenna (0=Auto, 1=Ant1, 2=Ant2)
+                const antennas = ['Auto', 'Ant1', 'Ant2'];
+                const antennaValue = data.antenna !== undefined ? (antennas[data.antenna] || data.antenna) : 'N/A';
+                updateField(`antenna-${statusId}`, antennaValue);
+
+                // Update DAA (dynamic attenuation adjustment)
+                const daaValue = data.daa ? 
+                    data.daa.charAt(0).toUpperCase() + data.daa.slice(1) : 'N/A';
+                updateField(`daa-${statusId}`, daaValue);
+
+                // Update deemphasis
+                updateField(`deemphasis-${statusId}`, data.deemphasis || 'N/A');
+
+                // Update card styling
+                const card = document.getElementById(`status-${statusId}`);
+                if (card) {
+                    // Default to green border
+                    let borderColor = '#2ecc71';
+                    
+                    // Update based on squelch if available
+                    if (data.squelch !== undefined) {
+                        // New format: 0 = off, 1-100 = on with threshold
+                        if (data.squelch === 0) {
+                            borderColor = '#e74c3c'; // Red for squelch off
+                        }
+                    }
+                    
+                    // Update based on signal level if available
+                    if (data.signal_level !== undefined) {
+                        const signalLevel = parseFloat(data.signal_level) || 0;
+                        borderColor = signalLevel > 10 ? '#27ae60' : 
+                                     signalLevel > 5 ? '#f39c12' : '#e74c3c';
+                    }
+                    
+                    card.style.borderLeft = `4px solid ${borderColor}`;
+                }
+                
+                return data;
+                
+            } catch (error) {
+                console.error(`Error fetching data for Receiver ${statusId}:`, error);
+                const errorText = 'Error';
+                const fields = [
+                    'freq', 'volume', 'squelch', 'bandwidth', 'agc', 'antenna',
+                    'daa', 'deemphasis'
+                ];
+
+                fields.forEach(field => {
+                    updateField(`${field}-${statusId}`, errorText);
+                });
+
+                // Set error state styling
+                const card = document.getElementById(`status-${statusId}`);
+                if (card) {
+                    card.style.borderLeft = '4px solid #f39c12';
+                }
+                
+                return null;
+            }
+        }
+
+        // Load data for each status with delay
+        async function loadDataWithDelay() {
+            while (true) {
+                // Process each status one at a time with delay
+                for (let i = 0; i < urls.length; i++) {
+                    try {
+                        await fetchData(urls[i], i + 1);
+                        // Wait 3 seconds before the next API call
+                        await sleep(3000);
+                    } catch (error) {
+                        console.error(`Error in loadDataWithDelay for Receiver ${i + 1}:`, error);
+                        // Continue with next receiver even if one fails
+                    }
+                }
+                
+                // Wait 3 seconds after the last receiver before starting over
+                await sleep(3000);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set default values for custom range
+            minFreqInput.value = '87.5';
+            maxFreqInput.value = '108';
+            
+            // Initial data load
+            const initialLoad = async () => {
+                const minFreq = parseFloat(minFreqInput.value) || 87.5;
+                const maxFreq = parseFloat(maxFreqInput.value) || 108;
+                
+                const { frequencies, strengths } = await fetchSpectrumData(minFreq, maxFreq);
+                updateChart(frequencies, strengths);
+            };
+            
+            // Start loading data
+            initialLoad();
+            
+            // Start status updates
+            if (urls && urls.length > 0) {
+                loadDataWithDelay();
+            } else {
+                console.error('No status API endpoints defined');
+            }
+            
+            // Start auto-refresh if enabled
+            if (autoRefreshCheckbox.checked) {
+                startAutoRefresh();
+            }
+        });
+    </script>
+</body>
+</html>
