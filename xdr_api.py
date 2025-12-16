@@ -33,14 +33,18 @@ DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 5000
 
 # Default configuration for up to 4 XDRD hosts
-DEFAULT_XDRD_CONFIGS = [
-    {"host": "100.127.46.12", "port": 7373, "name": "XDR-1"},  # Default first host
-    {"host": None, "port": 7373, "name": "XDR-2"},  # Disabled by default
-    {"host": None, "port": 7373, "name": "XDR-3"},  # Disabled by default
-    {"host": None, "port": 7373, "name": "XDR-4"}   # Disabled by default
+XDRD_CONFIG = [
+    {"host": "xdrd1", "port": 7371, "name": "XDR-1", "password": "123qwe"},  # Default first host
 ]
 
-MAX_XDR = 4
+if os.environ.get("XDRD_CONFIG"):
+    try:
+        XDRD_CONFIG = json.loads(os.environ["XDRD_CONFIG"])
+    except json.JSONDecodeError:
+        print("Error parsing XDRD_CONFIG environment variable, using default.")
+
+# cambiar a env, default en 1
+MAX_XDR = len(XDRD_CONFIG)
 
 # Get configuration from environment variables
 HOST = os.environ.get("HOST", DEFAULT_HOST)
@@ -50,19 +54,15 @@ PORT = int(os.environ.get("PORT", DEFAULT_PORT))
 XDRD_CONFIGS = []
 for i in range(MAX_XDR):
     idx = i + 1  # 1-based index for environment variables
-    host = os.environ.get(f"XDRD_{idx}_HOST", DEFAULT_XDRD_CONFIGS[i]["host"] if i < len(DEFAULT_XDRD_CONFIGS) else None)
-    port = int(os.environ.get(f"XDRD_{idx}_PORT", DEFAULT_XDRD_CONFIGS[i]["port"] if i < len(DEFAULT_XDRD_CONFIGS) else 7373))
-    name = os.environ.get(f"XDRD_{idx}_NAME", DEFAULT_XDRD_CONFIGS[i]["name"] if i < len(DEFAULT_XDRD_CONFIGS) else f"XDR-{idx}")
-    password = os.environ.get(f"XDRD_{idx}_PASSWORD")
-
-    if host:  # Only add if host is configured
-        XDRD_CONFIGS.append({
-            "id": idx,
-            "host": host,
-            "port": port,
-            "name": name,
-            "password": password
-        })
+    if i < len(XDRD_CONFIG):
+        if XDRD_CONFIG[i]["host"]:
+            XDRD_CONFIGS.append({
+                "id": idx,
+                "host": XDRD_CONFIG[i]["host"],
+                "port": XDRD_CONFIG[i]["port"],
+                "name": XDRD_CONFIG[i]["name"],
+                "password": XDRD_CONFIG[i]["password"]
+            })
 
 if not XDRD_CONFIGS:
     raise ValueError("At least one XDRD host must be configured")
