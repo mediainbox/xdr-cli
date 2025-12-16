@@ -186,6 +186,21 @@ FREQ=$(xdrctl.py status --json | jq '.freq_mhz')
 echo "Current frequency: $FREQ MHz"
 ```
 
+## XDR API
+
+In order to run the API you need to have the `XDRD_CONFIG` environment variable.
+Here is an example
+
+```
+XDRD_CONFIG='[{"host": "xdrd1", "port": 7371, "name": "XDR-1", "password": "123qwe"},{"host": "xdrd2", "port": 7372, "name": "XDR-2", "password": "123qwe"},{"host": "xdrd3", "port": 7373, "name": "XDR-3", "password": "123qwe"},{"host": "xdrd4", "port": 7374, "name": "XDR-4", "password": "123qwe"}]'
+```
+
+Then, you can simply run:
+
+```
+./xdr_api.py
+```
+
 ---
 
 ## 🧾 License
