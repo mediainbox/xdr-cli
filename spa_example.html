@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -31,7 +32,7 @@
         .chart-container {
             position: relative;
             width: 100%;
-            height: 400px;  /* Fixed height */
+            height: 400px;
             margin: 20px 0;
         }
 
@@ -51,7 +52,9 @@
             justify-content: center;
         }
 
-        button, select, input {
+        button,
+        select,
+        input {
             padding: 8px 16px;
             border: 1px solid #ddd;
             border-radius: 4px;
@@ -154,6 +157,7 @@
         }
     </style>
 </head>
+
 <body>
     <!-- Spectrum Section -->
     <div class="spectrum-container">
@@ -220,6 +224,18 @@
                     <span class="status-label">Deemphasis</span>
                     <span class="status-value" id="deemphasis-1">Loading...</span>
                 </div>
+                <div class="status-item">
+                    <span class="status-label">Gain</span>
+                    <span class="status-value" id="gain-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Rotator</span>
+                    <span class="status-value" id="rotator-1">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Interval</span>
+                    <span class="status-value" id="interval-1">Loading...</span>
+                </div>
             </div>
         </div>
 
@@ -257,6 +273,18 @@
                 <div class="status-item">
                     <span class="status-label">Deemphasis</span>
                     <span class="status-value" id="deemphasis-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Gain</span>
+                    <span class="status-value" id="gain-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Rotator</span>
+                    <span class="status-value" id="rotator-2">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Interval</span>
+                    <span class="status-value" id="interval-2">Loading...</span>
                 </div>
             </div>
         </div>
@@ -296,6 +324,18 @@
                     <span class="status-label">Deemphasis</span>
                     <span class="status-value" id="deemphasis-3">Loading...</span>
                 </div>
+                <div class="status-item">
+                    <span class="status-label">Gain</span>
+                    <span class="status-value" id="gain-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Rotator</span>
+                    <span class="status-value" id="rotator-3">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Interval</span>
+                    <span class="status-value" id="interval-3">Loading...</span>
+                </div>
             </div>
         </div>
 
@@ -333,6 +373,18 @@
                 <div class="status-item">
                     <span class="status-label">Deemphasis</span>
                     <span class="status-value" id="deemphasis-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Gain</span>
+                    <span class="status-value" id="gain-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Rotator</span>
+                    <span class="status-value" id="rotator-4">Loading...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Interval</span>
+                    <span class="status-value" id="interval-4">Loading...</span>
                 </div>
             </div>
         </div>
@@ -704,6 +756,15 @@
                 // Update deemphasis
                 updateField(`deemphasis-${statusId}`, data.deemphasis || 'N/A');
 
+                // Update gain
+                updateField(`gain-${statusId}`, data.gain !== undefined ? data.gain : 'N/A');
+
+                // Update rotator
+                updateField(`rotator-${statusId}`, data.rotator !== undefined ? data.rotator : 'N/A');
+
+                // Update interval sampling
+                updateField(`interval-${statusId}`, data.interval_sampling !== undefined ? `${data.interval_sampling} ms` : 'N/A');
+
                 // Update card styling
                 const card = document.getElementById(`status-${statusId}`);
                 if (card) {
@@ -735,7 +796,7 @@
                 const errorText = 'Error';
                 const fields = [
                     'freq', 'volume', 'squelch', 'bandwidth', 'agc', 'antenna',
-                    'daa', 'deemphasis'
+                    'daa', 'deemphasis', 'gain', 'rotator', 'interval'
                 ];
 
                 fields.forEach(field => {
