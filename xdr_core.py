@@ -357,17 +357,14 @@ def calculate_squelch(value):
 
 
 def calculate_daa(value):
-    return_value = ''
-    if value == 0:
-        return_value = "normal"
-    elif value == 1:
-        return_value = "dead air"
-    elif value == 2:
-        return_value = "error or unsupported mode"
-    else:
-        return_value = value
-
-    return return_value
+    # Despite the legacy "daa" name (kept for state-key compat), this is the
+    # chip's RF antenna alignment / front-end attenuation, in 6 dB steps from
+    # 0 to 36 dB. It is NOT a Dead Air Alert — that register doesn't exist in
+    # the NXP TEF668x API. Earlier code mapped 0/1/2 to "normal"/"dead air"/
+    # "error" strings that had no relation to the chip's actual semantics.
+    if isinstance(value, int):
+        return f"{value} dB"
+    return value
 
 def print_table(d):
     if not d:
