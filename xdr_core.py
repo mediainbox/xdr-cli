@@ -225,7 +225,7 @@ def parse_event_line(line: str):
         except ValueError:
             return {"type": "pilot_raw", "raw": line}
 
-    if k in ("M","Y","T","D","A","F","W","Z","G","V","Q","C"):
+    if k in ("M","Y","T","D","A","W","Z","G","V","Q","C"):
         try:
             ival = int(v)
         except ValueError:
