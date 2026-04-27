@@ -232,7 +232,7 @@ def parse_event_line(line: str):
             ival = v
         keymap = {
             "M":"mode","Y":"volume","T":"freq_khz","D":"deemphasis","A":"agc",
-            "F":"filter","W":"bandwidth","Z":"antenna","G":"gain","V":"daa",
+            "W":"bandwidth","Z":"antenna","G":"gain","V":"daa",
             "Q":"squelch","C":"rotator"
         }
         out = {"type":"state", "key": keymap[k], "value": ival}
@@ -544,9 +544,6 @@ def xdr_bandwidth(ctx, code, read_seconds, as_json):
     _send_and_print(ctx, f"W{code}", read_seconds, as_json)
 
 
-def xdr_filter(ctx, code, read_seconds, as_json):
-    _send_and_print(ctx, f"F{code}", read_seconds, as_json)
-
 def xdr_mode(ctx, mode, read_seconds, as_json):
     _send_and_print(ctx, f"M{mode}", read_seconds, as_json)
 
@@ -593,7 +590,7 @@ def xdr_init_cmd(ctx, read_seconds, as_json):
 def xdr_shutdown(ctx, read_seconds, as_json):
     _send_and_print(ctx, "X", read_seconds, as_json)
 
-def xdr_init_full(ctx, mode, volume, deemp, agc, if_filter, bandwidth, antenna, gain, daa,
+def xdr_init_full(ctx, mode, volume, deemp, agc, bandwidth, antenna, gain, daa,
               squelch, rotator, sampling, detector, freq_khz, status, read_seconds, as_json):
     s, _ = connect_and_auth(ctx.obj["host"], ctx.obj["port"], ctx.obj["password"])
     cmds = [
@@ -602,7 +599,6 @@ def xdr_init_full(ctx, mode, volume, deemp, agc, if_filter, bandwidth, antenna, 
         f"Y{volume}",
         f"D{deemp}",
         f"A{agc}",
-        f"F{if_filter}",
         f"W{bandwidth}",
         f"Z{antenna}",
         f"G{gain:02d}",
