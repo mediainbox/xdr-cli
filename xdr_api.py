@@ -15,8 +15,8 @@ def add_cors_headers(response):
 
 # Import XDR core functions directly
 from xdr_core import (
-    xdr_status, xdr_scan, xdr_tune, xdr_bandwidth, xdr_filter, 
-    xdr_mode, xdr_volume, xdr_deemp,xdr_agc, xdr_antenna, xdr_gain, 
+    xdr_status, xdr_scan, xdr_tune, xdr_bandwidth,
+    xdr_mode, xdr_volume, xdr_deemp,xdr_agc, xdr_antenna, xdr_gain,
     xdr_daa, xdr_squelch, xdr_rotator, xdr_interval, xdr_init_cmd, 
     xdr_shutdown, xdr_state
 )
@@ -170,18 +170,6 @@ def set_bandwidth(xdrid, code):
         read_seconds = float(request.args.get('read_seconds', 0.6))
         as_json = False
         result = xdr_bandwidth(xdr_ctx, code, read_seconds, as_json)
-        return jsonify(result)
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 404
-
-@app.route('/api/<int:xdrid>/filter/<int:code>', methods=['POST', 'OPTIONS'])
-@app.route('/api/filter/<int:code>', methods=['POST', 'OPTIONS'], defaults={'xdrid': 1})
-def set_filter(xdrid, code):
-    try:
-        xdr_ctx = XDRContext.get_context(xdrid)
-        read_seconds = float(request.args.get('read_seconds', 0.6))
-        as_json = False
-        result = xdr_filter(xdr_ctx, code, read_seconds, as_json)
         return jsonify(result)
     except ValueError as e:
         return jsonify({"error": str(e)}), 404

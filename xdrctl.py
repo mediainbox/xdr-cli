@@ -10,7 +10,7 @@ import string
 import click
 
 from xdr_core import xdr_status, xdr_listen, xdr_raw, xdr_scan, xdr_init_full
-from xdr_core import xdr_tune, xdr_bandwidth, xdr_filter, xdr_mode, xdr_volume, xdr_deemp
+from xdr_core import xdr_tune, xdr_bandwidth, xdr_mode, xdr_volume, xdr_deemp
 from xdr_core import xdr_agc, xdr_antenna, xdr_gain, xdr_daa, xdr_squelch, xdr_rotator
 from xdr_core import xdr_interval, xdr_init_cmd, xdr_shutdown, xdr_state
 
@@ -96,14 +96,6 @@ def tune(ctx, khz, read_seconds, as_json):
 @click.pass_context
 def bandwidth(ctx, code, read_seconds, as_json):
     xdr_bandwidth(ctx, code, read_seconds, as_json)
-
-@cli.command(help="IF filter (F).")
-@click.argument("code", type=int)
-@click.option("--read-seconds", default=0.6, show_default=True, type=float)
-@click.option("--json", "as_json", is_flag=True, default=False)
-@click.pass_context
-def filter(ctx, code, read_seconds, as_json):
-    xdr_filter(ctx, code, read_seconds, as_json)
 
 @cli.command(help="Mode (M).")
 @click.argument("mode", type=int)
@@ -208,7 +200,6 @@ def shutdown(ctx, read_seconds, as_json):
 @click.option("--volume", default=100, show_default=True, type=int)
 @click.option("--deemp", default=0, show_default=True, type=int)
 @click.option("--agc", default=2, show_default=True, type=int)
-@click.option("--filter", "if_filter", default=-1, show_default=True, type=int)
 @click.option("--bandwidth", default=0, show_default=True, type=int)
 @click.option("--antenna", default=0, show_default=True, type=int)
 @click.option("--gain", default=0, show_default=True, type=int)
@@ -222,9 +213,9 @@ def shutdown(ctx, read_seconds, as_json):
 @click.option("--read-seconds", default=2.0, show_default=True, type=float)
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.pass_context
-def init_full(ctx, mode, volume, deemp, agc, if_filter, bandwidth, antenna, gain, daa,
+def init_full(ctx, mode, volume, deemp, agc, bandwidth, antenna, gain, daa,
               squelch, rotator, sampling, detector, freq_khz, status, read_seconds, as_json):
-    xdr_init_full(ctx, mode, volume, deemp, agc, if_filter, bandwidth, antenna, gain, daa,
+    xdr_init_full(ctx, mode, volume, deemp, agc, bandwidth, antenna, gain, daa,
               squelch, rotator, sampling, detector, freq_khz, status, read_seconds, as_json)
 
 

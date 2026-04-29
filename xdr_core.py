@@ -225,14 +225,14 @@ def parse_event_line(line: str):
         except ValueError:
             return {"type": "pilot_raw", "raw": line}
 
-    if k in ("M","Y","T","D","A","F","W","Z","G","V","Q","C"):
+    if k in ("M","Y","T","D","A","W","Z","G","V","Q","C"):
         try:
             ival = int(v)
         except ValueError:
             ival = v
         keymap = {
             "M":"mode","Y":"volume","T":"freq_khz","D":"deemphasis","A":"agc",
-            "F":"filter","W":"bandwidth","Z":"antenna","G":"gain","V":"daa",
+            "W":"bandwidth","Z":"antenna","G":"gain","V":"daa",
             "Q":"squelch","C":"rotator"
         }
         out = {"type":"state", "key": keymap[k], "value": ival}
@@ -357,17 +357,14 @@ def calculate_squelch(value):
 
 
 def calculate_daa(value):
-    return_value = ''
-    if value == 0:
-        return_value = "normal"
-    elif value == 1:
-        return_value = "dead air"
-    elif value == 2:
-        return_value = "error or unsupported mode"
-    else:
-        return_value = value
-
-    return return_value
+    # Despite the legacy "daa" name (kept for state-key compat), this is the
+    # chip's RF antenna alignment / front-end attenuation, in 6 dB steps from
+    # 0 to 36 dB. It is NOT a Dead Air Alert — that register doesn't exist in
+    # the NXP TEF668x API. Earlier code mapped 0/1/2 to "normal"/"dead air"/
+    # "error" strings that had no relation to the chip's actual semantics.
+    if isinstance(value, int):
+        return f"{value} dB"
+    return value
 
 def print_table(d):
     if not d:
@@ -547,9 +544,6 @@ def xdr_bandwidth(ctx, code, read_seconds, as_json):
     _send_and_print(ctx, f"W{code}", read_seconds, as_json)
 
 
-def xdr_filter(ctx, code, read_seconds, as_json):
-    _send_and_print(ctx, f"F{code}", read_seconds, as_json)
-
 def xdr_mode(ctx, mode, read_seconds, as_json):
     _send_and_print(ctx, f"M{mode}", read_seconds, as_json)
 
@@ -596,7 +590,7 @@ def xdr_init_cmd(ctx, read_seconds, as_json):
 def xdr_shutdown(ctx, read_seconds, as_json):
     _send_and_print(ctx, "X", read_seconds, as_json)
 
-def xdr_init_full(ctx, mode, volume, deemp, agc, if_filter, bandwidth, antenna, gain, daa,
+def xdr_init_full(ctx, mode, volume, deemp, agc, bandwidth, antenna, gain, daa,
               squelch, rotator, sampling, detector, freq_khz, status, read_seconds, as_json):
     s, _ = connect_and_auth(ctx.obj["host"], ctx.obj["port"], ctx.obj["password"])
     cmds = [
@@ -605,7 +599,6 @@ def xdr_init_full(ctx, mode, volume, deemp, agc, if_filter, bandwidth, antenna, 
         f"Y{volume}",
         f"D{deemp}",
         f"A{agc}",
-        f"F{if_filter}",
         f"W{bandwidth}",
         f"Z{antenna}",
         f"G{gain:02d}",
