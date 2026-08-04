@@ -236,8 +236,15 @@ def parse_event_line(line: str):
             "Q":"squelch","C":"rotator"
         }
         out = {"type":"state", "key": keymap[k], "value": ival}
-        if k == "T" and isinstance(ival, int):
-            out["freq_mhz"] = round(ival/1000.0, 3)
+        if k == "T":
+            # `T<khz>,<step>`; the value is unvalidated, so non-numeric
+            # fields keep the raw string instead of raising.
+            khz_str, _, step_str = str(ival).partition(",")
+            if RE_INT.match(khz_str):
+                out["value"] = int(khz_str)
+                out["freq_mhz"] = round(int(khz_str)/1000.0, 3)
+                if RE_INT.match(step_str):
+                    out["step_khz"] = int(step_str)
         return out
 
     if k == "I":
