@@ -33,7 +33,7 @@ The CLI handles this automatically.
 
 ```bash
 export XDRD_PASS='123qwe'
-export XDRD_HOST=192.168.86.42
+export XDRD_HOST=192.0.2.42
 export XDRD_PORT=7370
 ./xdrctl.py status
 ```
@@ -44,7 +44,7 @@ mode     : 0
 volume   : 78
 freq_khz : 99900
 freq_mhz : 99.9
-deemphasis : 0
+deemphasis : 50 µs
 ```
 
 JSON output:
@@ -58,7 +58,7 @@ JSON output:
   "volume": 78,
   "freq_khz": 99900,
   "freq_mhz": 99.9,
-  "deemphasis": 0
+  "deemphasis": "50 µs"
 }
 ```
 
@@ -107,7 +107,6 @@ This reads all daemon messages (`T`, `P`, `R`, `Ss`, etc.) for the next 3 second
 | `tune <kHz>` | Tune frequency in kHz | `xdrctl.py tune 101700` |
 | `volume <n>` | Set volume (0–100) | `xdrctl.py volume 80` |
 | `bandwidth <n>` | Set IF bandwidth | `xdrctl.py bandwidth 2` |
-| `filter <n>` | Select IF filter | `xdrctl.py filter 1` |
 | `mode <n>` | Set tuner mode (mono/stereo) | `xdrctl.py mode 0` |
 | `deemp <n>` | De-emphasis (0=50µs, 1=75µs) | `xdrctl.py deemp 1` |
 | `agc <n>` | Automatic gain control | `xdrctl.py agc 0` |
